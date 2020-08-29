@@ -1,36 +1,55 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include "shader.h"
+
 #include <iostream>
+
 
 //Prototypes
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
+void toggleWireframeMode(GLFWwindow* window);
+
 void processInput(GLFWwindow* window);
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 //User Settings
 const unsigned int SCREEN_WIDTH = 1280;
 const unsigned int SCREEN_HEIGHT = 720;
+bool bWireframe = false;
 
 const char *vertexShaderSource = "#version 460 core\n"
 	"layout (location = 0) in vec3 aPos;\n"
+	"layout (location = 1) in vec3 aColor;\n"
+	"out vec3 vertexColor;\n"
 	"void main()\n"
 	"{\n"
-	"	gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0f);\n"
+	"	gl_Position = vec4(aPos, 1.0f);\n"
+	"	vertexColor = aColor;\n"
 	"}\0";
 
 
 const char *fragmentShaderSource = "#version 460 core\n"
 	"out vec4 FragColor;\n"
+	"in vec3 vertexColor;\n"
 	"void main()\n"
 	"{\n"
-	"	FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+	"	FragColor = vec4(vertexColor, 1.0f);\n"
+	"}\0";
+
+const char *fragmentShaderSource2 = "#version 460 core\n"
+	"out vec4 FragColor;\n"
+	"uniform vec4 ourColor;\n"
+	"void main()\n"
+	"{\n"
+	"	FragColor = ourColor;\n"
 	"}\0";
 
 
 int main()
 {
-
 
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -56,98 +75,69 @@ int main()
 	glViewport(0, 0, 1280, 720);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
+	Shader defaultShader("shaders/default.vtxs", "shaders/default.frgs");
+	Shader breathingShader("shaders/default.vtxs", "shaders/breathing.frgs");
 
-
-
-	//############ VERTEX SHADER ###############
-	unsigned int vertexShader;
-	vertexShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-	glCompileShader(vertexShader);
-
-	int success;
-	char infoLog[512];
-	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-	if (!success)
+	float triangleOne[] =
 	{
-		glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-		std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-	}
-
-
-	//############ FRAGMENT SHADER ###############
-	unsigned int fragmentShader;
-	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-	glCompileShader(fragmentShader);
-
-	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-	if (!success)
-	{
-		glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-		std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-	}
-
-
-	//########### SHADER PROGRAM ##############
-	unsigned int shaderProgram;
-	shaderProgram = glCreateProgram();
-
-	glAttachShader(shaderProgram, vertexShader);
-	glAttachShader(shaderProgram, fragmentShader);
-	glLinkProgram(shaderProgram);
-
-	glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-	if (!success)
-	{
-		glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-		std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-	}
-	glDeleteShader(vertexShader);
-	glDeleteShader(fragmentShader);
-
-	//Triangle
-	float vertices[] =
-	{
-		// X	 Y		Z
-		-0.5f, -0.5f, 0.0f,
-		0.5f, -0.5f, 0.0f,
-		0.0f, 0.5f, 0.0f
+		// Positions			// Colors
+		-0.9f, -0.5f, 0.0f,		1.0f, 0.0f, 0.0f, // Bottom Right
+		-0.0f, -0.5f, 0.0f,		0.0f, 1.0f, 0.0f, // Bottom Left
+		-0.45f, 0.5f, 0.0f,		0.0f, 0.0f, 1.0f  // Top
 	};
 
+	float triangleTwo[] =
+	{
+		0.5f, -0.5f, 0.0f,
+		1.0f, -0.5f, 0.0f,
+		0.8f, 0.5f, 0.0f
+	};
 
-	unsigned int VBO, VAO;
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
+	unsigned int VBOs[2], VAOs[2];
+	glGenVertexArrays(2, VAOs);
+	glGenBuffers(2, VBOs);
 
-	glBindVertexArray(VAO);
+	// ######## Triangle One Setup ##########
+	glBindVertexArray(VAOs[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(triangleOne), triangleOne, GL_STATIC_DRAW);
+	//Position Attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	//Color Attribute
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
+	// ######## Triangle Two Setup ##########
+	glBindVertexArray(VAOs[1]);
+	glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(triangleTwo), triangleTwo, GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
-
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-
-
-
-
 
 
 	//############### RENDER LOOP #################
 	while (!glfwWindowShouldClose(window))
 	{
 		//Check for user input (Keystrokes, mouse movement, etc..)
-		processInput(window);
+		processInput(window); // Inputs that needs to be held down (example: W,A,S,D for movement) gets checked here
+		glfwSetKeyCallback(window, key_callback); // Inputs that need to be checked only once when pressed (example: ESC for opening the menu) gets checked here
 
 		//Rendering
 		glClearColor(0.5f, 0.8f, 0.8f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		glUseProgram(shaderProgram);
-		glBindVertexArray(VAO);
+		defaultShader.use(); // Default shader
+		defaultShader.setFloat("xOffset", (sin(glfwGetTime()) / 2.0f) + 0.5f);
+		glBindVertexArray(VAOs[0]);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+
+		//Update shaderProgram2's uniform attribute
+		float timeValue = glfwGetTime();
+		float redValue = (sin(timeValue) / 2.0f) + 0.5f;
+		breathingShader.use();
+		breathingShader.setFloat4("ourColor",redValue, 0.0f, 1.0f, 1.0f);
+		glBindVertexArray(VAOs[1]);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		//Swap the buffers and check/call events
@@ -160,9 +150,8 @@ int main()
 
 	//End of Main
 
-	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1, &VBO);
-	glDeleteProgram(shaderProgram);
+	glDeleteVertexArrays(2, VAOs);
+	glDeleteBuffers(2, VBOs);
 
 	glfwTerminate();
 	return 0;
@@ -171,10 +160,24 @@ int main()
 
 
 
-
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
+}
+
+void toggleWireframeMode(GLFWwindow* window)
+{
+		bWireframe = !bWireframe;
+		if (bWireframe == true)
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			glfwSetWindowTitle(window, "Brezee One - Wireframe mode");
+		}
+		else
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			glfwSetWindowTitle(window, "Brezee One");			
+		}
 }
 
 void processInput(GLFWwindow* window)
@@ -182,6 +185,14 @@ void processInput(GLFWwindow* window)
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 	{
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
+	}
+
+}
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	if (key == GLFW_KEY_F && action == GLFW_PRESS)
+	{
+		toggleWireframeMode(window);
 	}
 	
 }
