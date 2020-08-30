@@ -20,33 +20,6 @@ const unsigned int SCREEN_WIDTH = 1280;
 const unsigned int SCREEN_HEIGHT = 720;
 bool bWireframe = false;
 
-const char *vertexShaderSource = "#version 460 core\n"
-	"layout (location = 0) in vec3 aPos;\n"
-	"layout (location = 1) in vec3 aColor;\n"
-	"out vec3 vertexColor;\n"
-	"void main()\n"
-	"{\n"
-	"	gl_Position = vec4(aPos, 1.0f);\n"
-	"	vertexColor = aColor;\n"
-	"}\0";
-
-
-const char *fragmentShaderSource = "#version 460 core\n"
-	"out vec4 FragColor;\n"
-	"in vec3 vertexColor;\n"
-	"void main()\n"
-	"{\n"
-	"	FragColor = vec4(vertexColor, 1.0f);\n"
-	"}\0";
-
-const char *fragmentShaderSource2 = "#version 460 core\n"
-	"out vec4 FragColor;\n"
-	"uniform vec4 ourColor;\n"
-	"void main()\n"
-	"{\n"
-	"	FragColor = ourColor;\n"
-	"}\0";
-
 
 int main()
 {
@@ -75,8 +48,8 @@ int main()
 	glViewport(0, 0, 1280, 720);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-	Shader defaultShader("shaders/default.vtxs", "shaders/default.frgs");
-	Shader breathingShader("shaders/default.vtxs", "shaders/breathing.frgs");
+	Shader defaultShader("shaders/default_vertex.glsl", "shaders/default_fragment.glsl");
+	Shader breathingShader("shaders/default_vertex.glsl", "shaders/breathing_fragment.glsl");
 
 	float triangleOne[] =
 	{
