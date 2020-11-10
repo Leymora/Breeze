@@ -1,6 +1,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include "stb_image.h"
 #include "shader.h"
 
 #include <iostream>
@@ -19,7 +20,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 const unsigned int SCREEN_WIDTH = 1280;
 const unsigned int SCREEN_HEIGHT = 720;
 bool bWireframe = false;
-
 
 int main()
 {
@@ -51,20 +51,13 @@ int main()
 	Shader defaultShader("shaders/default_vertex.glsl", "shaders/default_fragment.glsl");
 	Shader breathingShader("shaders/default_vertex.glsl", "shaders/breathing_fragment.glsl");
 
-	float triangleOne[] =
-	{
-		// Positions			// Colors
-		-0.9f, -0.5f, 0.0f,		1.0f, 0.0f, 0.0f, // Bottom Right
-		-0.0f, -0.5f, 0.0f,		0.0f, 1.0f, 0.0f, // Bottom Left
-		-0.45f, 0.5f, 0.0f,		0.0f, 0.0f, 1.0f  // Top
-	};
-
 	float rectangleOne[] =
 	{
-		 0.5f,  0.5f, 0.0f,		0.0, 0.0f, 0.0f,	// Top Right
-		 0.5f, -0.5f, 0.0f,		1.0f, 0.0f, 0.0f,	// Bottom Right
-		-0.5f, -0.5f, 0.0f,		0.0f, 1.0f, 0.0f,	// Bottom Left
-		-0.5f,	0.5f, 0.0f,		0.0f, 0.0f, 1.0f	// Top Left
+		// Positions			// Colors			// Texture coords
+		 0.5f,  0.5f, 0.0f,		0.0, 0.0f, 0.0f,	1.0f, 1.0f,		// Top Right
+		 0.5f, -0.5f, 0.0f,		1.0f, 0.0f, 0.0f,	1.0f, 0.0f,		// Bottom Right
+		-0.5f, -0.5f, 0.0f,		0.0f, 1.0f, 0.0f,	0.0f, 0.0f,		// Bottom Left
+		-0.5f,	0.5f, 0.0f,		0.0f, 0.0f, 1.0f,	0.0f, 1.0f		// Top Left
 	};
 	unsigned int indices[] =
 	{
@@ -72,30 +65,53 @@ int main()
 		1, 2, 3		// Second triangle
 	};
 
-	unsigned int EBO;
-	glGenBuffers(1, &EBO);
+
+	
+	unsigned int EBOs[2];
+	glGenBuffers(1, EBOs);
 
 
 	unsigned int VBOs[2], VAOs[2];
 	glGenVertexArrays(2, VAOs);
 	glGenBuffers(2, VBOs);
 
-	// ######## Triangle One Setup ##########
+	// ######## Rectangle One Setup ##########
 	glBindVertexArray(VAOs[0]);
 	glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(rectangleOne), rectangleOne, GL_STATIC_DRAW);
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[0]);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
 	//Position Attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
 	//Color Attribute
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3* sizeof(float)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 	
+	//Tex Attribute
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
+
+
+
+	unsigned int texture;
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	int width, height, nrChannels;
+	unsigned char* data = stbi_load("textures/brick.jpg", &width, &height, &nrChannels, 0);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	stbi_image_free(data);
 
 
 	//############### RENDER LOOP #################
@@ -110,10 +126,11 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT);
 
 
+
+		glBindTexture(GL_TEXTURE_2D, texture);
 		defaultShader.use();
 		glBindVertexArray(VAOs[0]);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		glBindVertexArray(0);
 
 
 		/* Old Stuff
