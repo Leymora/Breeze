@@ -59,12 +59,22 @@ int main()
 		-0.45f, 0.5f, 0.0f,		0.0f, 0.0f, 1.0f  // Top
 	};
 
-	float triangleTwo[] =
+	float rectangleOne[] =
 	{
-		0.5f, -0.5f, 0.0f,
-		1.0f, -0.5f, 0.0f,
-		0.8f, 0.5f, 0.0f
+		 0.5f,  0.5f, 0.0f,		0.0, 0.0f, 0.0f,	// Top Right
+		 0.5f, -0.5f, 0.0f,		1.0f, 0.0f, 0.0f,	// Bottom Right
+		-0.5f, -0.5f, 0.0f,		0.0f, 1.0f, 0.0f,	// Bottom Left
+		-0.5f,	0.5f, 0.0f,		0.0f, 0.0f, 1.0f	// Top Left
 	};
+	unsigned int indices[] =
+	{
+		0, 1, 3,	// First triangle
+		1, 2, 3		// Second triangle
+	};
+
+	unsigned int EBO;
+	glGenBuffers(1, &EBO);
+
 
 	unsigned int VBOs[2], VAOs[2];
 	glGenVertexArrays(2, VAOs);
@@ -73,20 +83,19 @@ int main()
 	// ######## Triangle One Setup ##########
 	glBindVertexArray(VAOs[0]);
 	glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(triangleOne), triangleOne, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(rectangleOne), rectangleOne, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
 	//Position Attribute
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
-	//Color Attribute
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
 
-	// ######## Triangle Two Setup ##########
-	glBindVertexArray(VAOs[1]);
-	glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(triangleTwo), triangleTwo, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
+	//Color Attribute
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3* sizeof(float)));
+	glEnableVertexAttribArray(1);
+	
 
 
 	//############### RENDER LOOP #################
@@ -100,18 +109,28 @@ int main()
 		glClearColor(0.5f, 0.8f, 0.8f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		defaultShader.use(); // Default shader
-		defaultShader.setFloat("xOffset", (sin(glfwGetTime()) / 2.0f) + 0.5f);
-		glBindVertexArray(VAOs[0]);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
 
-		//Update shaderProgram2's uniform attribute
-		float timeValue = glfwGetTime();
-		float redValue = (sin(timeValue) / 2.0f) + 0.5f;
-		breathingShader.use();
-		breathingShader.setFloat4("ourColor",redValue, 0.0f, 1.0f, 1.0f);
-		glBindVertexArray(VAOs[1]);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		defaultShader.use();
+		glBindVertexArray(VAOs[0]);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glBindVertexArray(0);
+
+
+		/* Old Stuff
+		//defaultShader.use(); // Default shader
+		//defaultShader.setFloat("xOffset", (sin(glfwGetTime()) / 2.0f) + 0.5f);
+		//glBindVertexArray(VAOs[0]);
+		//glDrawArrays(GL_TRIANGLES, 0, 3);
+
+		////Update shaderProgram2's uniform attribute
+		//float timeValue = glfwGetTime();
+		//float redValue = (sin(timeValue) / 2.0f) + 0.5f;
+		//breathingShader.use();
+		//breathingShader.setFloat4("ourColor",redValue, 0.0f, 1.0f, 1.0f);
+		//glBindVertexArray(VAOs[1]);
+		//glDrawArrays(GL_TRIANGLES, 0, 3);
+		*/
+			
 
 		//Swap the buffers and check/call events
 		glfwSwapBuffers(window);
