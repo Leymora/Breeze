@@ -21,6 +21,8 @@ const unsigned int SCREEN_WIDTH = 1280;
 const unsigned int SCREEN_HEIGHT = 720;
 bool bWireframe = false;
 
+float mixValue = 0.2f;
+
 int main()
 {
 
@@ -96,7 +98,7 @@ int main()
 	glEnableVertexAttribArray(2);
 
 
-
+	//Texture 1 ---------------------------------------------
 	unsigned int texture;
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_2D, texture);
@@ -106,12 +108,39 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+	stbi_set_flip_vertically_on_load(true);
 	int width, height, nrChannels;
 	unsigned char* data = stbi_load("textures/brick.jpg", &width, &height, &nrChannels, 0);
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 	glGenerateMipmap(GL_TEXTURE_2D);
+
 	stbi_image_free(data);
+	//-------------------------------------------------------
+
+	//Texture 2 ---------------------------------------------
+	unsigned int texture2;
+	glGenTextures(1, &texture2);
+	glBindTexture(GL_TEXTURE_2D, texture2);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	data = stbi_load("textures/cat.png", &width, &height, &nrChannels, 0);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	stbi_image_free(data);
+	//-------------------------------------------------------
+
+
+	defaultShader.use();
+	glUniform1i(glGetUniformLocation(defaultShader.ID, "texture1"), 0);
+	glUniform1i(glGetUniformLocation(defaultShader.ID, "texture2"), 1);
+
 
 
 	//############### RENDER LOOP #################
@@ -126,27 +155,16 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT);
 
 
-
+		glActiveTexture(GL_TEXTURE0); // Activate the texture unit first before binding the texture
 		glBindTexture(GL_TEXTURE_2D, texture);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, texture2);
+
+		defaultShader.setFloat("mixValue", mixValue);
+
 		defaultShader.use();
 		glBindVertexArray(VAOs[0]);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-
-		/* Old Stuff
-		//defaultShader.use(); // Default shader
-		//defaultShader.setFloat("xOffset", (sin(glfwGetTime()) / 2.0f) + 0.5f);
-		//glBindVertexArray(VAOs[0]);
-		//glDrawArrays(GL_TRIANGLES, 0, 3);
-
-		////Update shaderProgram2's uniform attribute
-		//float timeValue = glfwGetTime();
-		//float redValue = (sin(timeValue) / 2.0f) + 0.5f;
-		//breathingShader.use();
-		//breathingShader.setFloat4("ourColor",redValue, 0.0f, 1.0f, 1.0f);
-		//glBindVertexArray(VAOs[1]);
-		//glDrawArrays(GL_TRIANGLES, 0, 3);
-		*/
 			
 
 		//Swap the buffers and check/call events
@@ -194,6 +212,24 @@ void processInput(GLFWwindow* window)
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 	{
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
+	}
+	
+	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+	{
+		mixValue += 0.01f;
+		if (mixValue >= 1.0f)
+		{
+			mixValue = 1.0f;
+		}
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+	{
+		mixValue -= 0.01f;
+		if (mixValue <= 0.0f)
+		{
+			mixValue = 0.0f;
+		}
 	}
 
 }
