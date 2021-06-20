@@ -21,6 +21,8 @@ void processInput(GLFWwindow* window);
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
+void mouse_callback(GLFWwindow * window, double xpos, double ypos);
+
 //User Settings
 const float SCREEN_WIDTH = 1280.0f;
 const float SCREEN_HEIGHT = 720.0f;
@@ -38,10 +40,17 @@ float mixValue = 0.2f;
 glm::vec3 cameraPosition 	= 	glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront 		= 	glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp 			= 	glm::vec3(0.0f, 1.0f, 0.0f);
+float cameraFov = 90.0f;
+
+
+float yaw   = -90.0f;
+float pitch = 0.0f;
+float lastMouseX = SCREEN_WIDTH / 2;
+float lastMouseY = SCREEN_HEIGHT / 2;
+bool firstMouse = true;
 
 int main()
 {
-
 
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -57,6 +66,11 @@ int main()
 		return -1;
 	}
 	glfwMakeContextCurrent(window);
+	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Hide and lock the mouse cursor to the center of the window
+	
+
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
@@ -64,9 +78,7 @@ int main()
 		return -1;
 	}
 
-	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-
+	
 	Shader defaultShader("shaders/default_vertex.glsl", "shaders/default_fragment.glsl");
 	Shader breathingShader("shaders/default_vertex.glsl", "shaders/breathing_fragment.glsl");
 
@@ -229,7 +241,7 @@ int main()
 
 		// Projection Matrix
 		glm::mat4 projection;
-		projection = glm::perspective(glm::radians(45.0f), SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
+		projection = glm::perspective(glm::radians(cameraFov), SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
 
 
 		int modelLoc = glGetUniformLocation(defaultShader.ID, "model");
@@ -276,12 +288,12 @@ void toggleWireframeMode(GLFWwindow* window)
 		if (bWireframe == true)
 		{
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-			glfwSetWindowTitle(window, "Brezee One - Wireframe mode");
+			glfwSetWindowTitle(window, "Breeze One - Wireframe mode");
 		}
 		else
 		{
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-			glfwSetWindowTitle(window, "Brezee One");			
+			glfwSetWindowTitle(window, "Breeze One");			
 		}
 }
 
@@ -330,4 +342,41 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		toggleWireframeMode(window);
 	}
 	
+}
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+	if (firstMouse == true)
+	{
+		lastMouseX = xpos;
+		lastMouseY = ypos;
+		firstMouse = false;
+	}
+
+	float mouseXoffset = xpos - lastMouseX;
+	float mouseYoffset = lastMouseY - ypos; // Y-Offset is inverted as the Y-axis goes from bottom to top
+	lastMouseX = xpos;
+	lastMouseY = ypos;
+
+	float mouseSensitivity = 0.1f;
+	mouseXoffset *= mouseSensitivity;
+	mouseYoffset *= mouseSensitivity;
+
+	yaw += mouseXoffset;
+	pitch += mouseYoffset;
+
+	//Lock pitch so the player can only look 90° up and down.
+	//Up
+	if (pitch > 89.0f)
+		pitch = 89.0f;
+	//Down
+	if (pitch < -89.0f)
+		pitch = -89.0f;
+
+	glm::vec3 cameraDirection;
+	cameraDirection.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	cameraDirection.y = sin(glm::radians(pitch));
+	cameraDirection.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	cameraFront = glm::normalize(cameraDirection);
+
 }
