@@ -22,14 +22,26 @@ void processInput(GLFWwindow* window);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 //User Settings
-const unsigned int SCREEN_WIDTH = 1280;
-const unsigned int SCREEN_HEIGHT = 720;
+const float SCREEN_WIDTH = 1280.0f;
+const float SCREEN_HEIGHT = 720.0f;
 bool bWireframe = false;
+
+// Frames Per Second management
+float currentFrame 	= 0.0f;	// Calculate deltatime with this value
+float deltaTime 	= 0.0f; // Time it took to calculate one frame
+float lastFrame 	= 0.0f; // The last frame's time
+
 
 float mixValue = 0.2f;
 
+// Camera setup
+glm::vec3 cameraPosition 	= 	glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront 		= 	glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp 			= 	glm::vec3(0.0f, 1.0f, 0.0f);
+
 int main()
 {
+
 
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -52,54 +64,76 @@ int main()
 		return -1;
 	}
 
-	glViewport(0, 0, 1280, 720);
+	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
 	Shader defaultShader("shaders/default_vertex.glsl", "shaders/default_fragment.glsl");
 	Shader breathingShader("shaders/default_vertex.glsl", "shaders/breathing_fragment.glsl");
 
-	float rectangleOne[] =
-	{
-		// Positions			// Colors			// Texture coords
-		 0.5f,  0.5f, 0.0f,		0.0, 0.0f, 0.0f,	1.0f, 1.0f,		// Top Right
-		 0.5f, -0.5f, 0.0f,		1.0f, 0.0f, 0.0f,	1.0f, 0.0f,		// Bottom Right
-		-0.5f, -0.5f, 0.0f,		0.0f, 1.0f, 0.0f,	0.0f, 0.0f,		// Bottom Left
-		-0.5f,	0.5f, 0.0f,		0.0f, 0.0f, 1.0f,	0.0f, 1.0f		// Top Left
-	};
-	unsigned int indices[] =
-	{
-		0, 1, 3,	// First triangle
-		1, 2, 3		// Second triangle
-	};
+	float cube[] = {
+    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
 
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
 
-	
-	unsigned int EBOs[2];
-	glGenBuffers(1, EBOs);
+    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
 
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
 
-	unsigned int VBOs[2], VAOs[2];
-	glGenVertexArrays(2, VAOs);
-	glGenBuffers(2, VBOs);
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
 
-	// ######## Rectangle One Setup ##########
-	glBindVertexArray(VAOs[0]);
-	glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(rectangleOne), rectangleOne, GL_STATIC_DRAW);
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+};
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[0]);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+	unsigned int VBO, VAO;
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+
+	// ######## Cube Setup ##########
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cube), cube, GL_STATIC_DRAW);
 
 	//Position Attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
 	//Color Attribute
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5* sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 	
 	//Tex Attribute
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(2);
 
 
@@ -149,16 +183,25 @@ int main()
 
 
 
-	//############### RENDER LOOP #################
+
+
+
+	//############### GAME LOOP #################
 	while (!glfwWindowShouldClose(window))
 	{
+
+		currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
+
 		//Check for user input (Keystrokes, mouse movement, etc..)
 		processInput(window); // Inputs that needs to be held down (example: W,A,S,D for movement) gets checked here
 		glfwSetKeyCallback(window, key_callback); // Inputs that need to be checked only once when pressed (example: ESC for opening the menu) gets checked here
 
 		//Rendering
+		glEnable(GL_DEPTH_TEST);
 		glClearColor(0.5f, 0.8f, 0.8f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
 		glActiveTexture(GL_TEXTURE0); // Activate the texture unit first before binding the texture
@@ -169,30 +212,51 @@ int main()
 		defaultShader.setFloat("mixValue", mixValue);
 
 
-		glm::mat4 transform = glm::mat4(1.0f);
-		transform = glm::rotate(transform, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
-
 		defaultShader.use();
-		unsigned int transformLoc = glGetUniformLocation(defaultShader.ID, "transform");
-		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
+		
+		//Matrices ---------------------------------------
+
+		// Model Matrix
+		glm::mat4 model = glm::mat4(1.0f);
+		model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5f, 1.0f, 0.0f));
+
+		// View Matrix
+		glm::mat4 view = glm::mat4(1.0f);
+		view = glm::lookAt(cameraPosition, 					// Position
+						   cameraPosition + cameraFront, 	// Looking Direction
+						   cameraUp);						// Up Axis
 
 
-		glBindVertexArray(VAOs[0]);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		// Projection Matrix
+		glm::mat4 projection;
+		projection = glm::perspective(glm::radians(45.0f), SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
+
+
+		int modelLoc = glGetUniformLocation(defaultShader.ID, "model");
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		
+		int viewLoc = glGetUniformLocation(defaultShader.ID, "view");
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
+		
+		int projectionLoc = glGetUniformLocation(defaultShader.ID, "projection");
+		defaultShader.setMat4("projection", projection);
+
+
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 			
 
 		//Swap the buffers and check/call events
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
-	//############# END OF RENDER LOOP ###############
+	//############# END OF GAME LOOP ###############
 
 
 
 	//End of Main
 
-	glDeleteVertexArrays(2, VAOs);
-	glDeleteBuffers(2, VBOs);
+	glDeleteVertexArrays(1, &VAO);
+	glDeleteBuffers(1, &VBO);
 
 	glfwTerminate();
 	return 0;
@@ -245,6 +309,18 @@ void processInput(GLFWwindow* window)
 			mixValue = 0.0f;
 		}
 	}
+
+
+	float cameraSpeed = 2.5f * deltaTime;
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		cameraPosition += cameraFront * cameraSpeed;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		cameraPosition -= cameraFront * cameraSpeed;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		cameraPosition -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		cameraPosition += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+
 
 }
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
