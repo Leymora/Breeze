@@ -4,6 +4,7 @@
 
 #include "stb_image.h"
 #include "shader.h"
+#include "camera.h"
 
 #include <iostream>
 
@@ -21,7 +22,9 @@ void processInput(GLFWwindow* window);
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
-void mouse_callback(GLFWwindow * window, double xpos, double ypos);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 //User Settings
 const float SCREEN_WIDTH = 1280.0f;
@@ -37,14 +40,8 @@ float lastFrame 	= 0.0f; // The last frame's time
 float mixValue = 0.2f;
 
 // Camera setup
-glm::vec3 cameraPosition 	= 	glm::vec3(0.0f, 0.0f, 3.0f);
-glm::vec3 cameraFront 		= 	glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp 			= 	glm::vec3(0.0f, 1.0f, 0.0f);
-float cameraFov = 90.0f;
+Camera mainCam(glm::vec3(0.0f, 0.0f, 3.0f));
 
-
-float yaw   = -90.0f;
-float pitch = 0.0f;
 float lastMouseX = SCREEN_WIDTH / 2;
 float lastMouseY = SCREEN_HEIGHT / 2;
 bool firstMouse = true;
@@ -68,6 +65,7 @@ int main()
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetScrollCallback(window, scroll_callback);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Hide and lock the mouse cursor to the center of the window
 	
 
@@ -233,15 +231,11 @@ int main()
 		model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5f, 1.0f, 0.0f));
 
 		// View Matrix
-		glm::mat4 view = glm::mat4(1.0f);
-		view = glm::lookAt(cameraPosition, 					// Position
-						   cameraPosition + cameraFront, 	// Looking Direction
-						   cameraUp);						// Up Axis
-
+		glm::mat4 view = mainCam.getViewMatrix();
 
 		// Projection Matrix
 		glm::mat4 projection;
-		projection = glm::perspective(glm::radians(cameraFov), SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
+		projection = glm::perspective(glm::radians(mainCam.cameraFOV), SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
 
 
 		int modelLoc = glGetUniformLocation(defaultShader.ID, "model");
@@ -323,24 +317,22 @@ void processInput(GLFWwindow* window)
 	}
 
 
-	float cameraSpeed = 2.5f * deltaTime;
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		cameraPosition += cameraFront * cameraSpeed;
+		mainCam.keyboardInput(FORWARD, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		cameraPosition -= cameraFront * cameraSpeed;
+		mainCam.keyboardInput(BACKWARD, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		cameraPosition -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+		mainCam.keyboardInput(LEFT, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		cameraPosition += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-
+		mainCam.keyboardInput(RIGHT, deltaTime);
 
 }
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	if (key == GLFW_KEY_F && action == GLFW_PRESS)
-	{
 		toggleWireframeMode(window);
-	}
+	if (key == GLFW_KEY_F8 && action == GLFW_PRESS)
+		mainCam.cameraFOV = 90;
 	
 }
 
@@ -358,25 +350,11 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	lastMouseX = xpos;
 	lastMouseY = ypos;
 
-	float mouseSensitivity = 0.1f;
-	mouseXoffset *= mouseSensitivity;
-	mouseYoffset *= mouseSensitivity;
+	mainCam.mouseInput(mouseXoffset, mouseYoffset);
 
-	yaw += mouseXoffset;
-	pitch += mouseYoffset;
+}
 
-	//Lock pitch so the player can only look 90° up and down.
-	//Up
-	if (pitch > 89.0f)
-		pitch = 89.0f;
-	//Down
-	if (pitch < -89.0f)
-		pitch = -89.0f;
-
-	glm::vec3 cameraDirection;
-	cameraDirection.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-	cameraDirection.y = sin(glm::radians(pitch));
-	cameraDirection.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-	cameraFront = glm::normalize(cameraDirection);
-
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	mainCam.scrollInput(yoffset);
 }
