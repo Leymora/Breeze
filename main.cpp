@@ -1,3 +1,4 @@
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
@@ -6,6 +7,10 @@
 
 #include <iostream>
 
+//OpenGL Mathematics
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 //Prototypes
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -143,6 +148,7 @@ int main()
 
 
 
+
 	//############### RENDER LOOP #################
 	while (!glfwWindowShouldClose(window))
 	{
@@ -162,7 +168,15 @@ int main()
 
 		defaultShader.setFloat("mixValue", mixValue);
 
+
+		glm::mat4 transform = glm::mat4(1.0f);
+		transform = glm::rotate(transform, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
+
 		defaultShader.use();
+		unsigned int transformLoc = glGetUniformLocation(defaultShader.ID, "transform");
+		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
+
+
 		glBindVertexArray(VAOs[0]);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 			

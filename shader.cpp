@@ -3,7 +3,7 @@
 // The constructor reads and builds the shader from the given sources
 Shader::Shader(const char* vertexSource, const char* fragmentSource)
 {
-    // Step 1: Retrive and read the vertex/fragment source codes
+    // Step 1: Retrive and read the vertex/fragment source files
     std::string vertexCode;
     std::string fragmentCode;
     std::ifstream vShaderFile;
@@ -88,6 +88,7 @@ void Shader::use()
 {
     glUseProgram(ID);
 }
+
 // Utility uniform functions
 void Shader::setBool(const std::string& name, bool value) const
 {
@@ -104,4 +105,31 @@ void Shader::setFloat(const std::string& name, float value) const
 void Shader::setFloat4(const std::string& name, float value1, float value2, float value3, float value4) const
 {
     glUniform4f(glGetUniformLocation(ID, name.c_str()), value1, value2, value3, value4);
+}
+
+
+void checkCompileErrors(GLuint shader, std::string type)
+{
+    GLint success;
+    GLchar infoLog[1024];
+    if (type != "PROGRAM")
+    {
+        glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+        if (!success)
+        {
+            glGetShaderInfoLog(shader, 1024, NULL, infoLog);
+            std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n";
+        }
+        
+    }
+    else
+    {
+        glGetProgramiv(shader, GL_LINK_STATUS, &success);
+        if(!success)
+        {
+            glGetProgramInfoLog(shader, 1024, NULL, infoLog);
+            std::cout << "ERROR::SHADER_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n";
+        }
+    }
+    
 }
