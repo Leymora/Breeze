@@ -7,7 +7,7 @@
 #include "camera.h"
 
 #include <iostream>
-#include <stdio.h>
+#include <filesystem>
 #include <zip.h>
 
 //OpenGL Mathematics
@@ -28,6 +28,9 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
+void unZip(unsigned char* &contents, int &stSize, std::string file);
+
+
 //Engine Stuff
 FILE *stream;
 
@@ -42,7 +45,7 @@ float deltaTime 	= 0.0f; // Time it took to calculate one frame
 float lastFrame 	= 0.0f; // The last frame's time
 
 
-float mixValue = 0.2f;
+float mixValue = 0.0f;
 
 // Camera setup
 Camera mainCam(glm::vec3(0.0f, 0.0f, 3.0f), 90.0f);
@@ -51,14 +54,18 @@ float lastMouseX = SCREEN_WIDTH / 2;
 float lastMouseY = SCREEN_HEIGHT / 2;
 bool firstMouse = true;
 
+std::filesystem::path appDataPath = std::filesystem::temp_directory_path().parent_path().parent_path().parent_path() += "\\Roaming\\BreezeEngine";
+std::string engineDefaultsPath = appDataPath.string() + "\\engineDefaults.bpf";
 
 int main()
 {
 
-
-	if(!fopen_s(&stream, "../textures/fallback_texture.png", "r"))
+	if(!std::filesystem::exists(appDataPath))
+		std::filesystem::create_directories(appDataPath);
+	
+	if(!std::filesystem::exists(engineDefaultsPath))
 	{
-		std::cout << "Missing file: textures/fallback_texture.png!" << std::endl << "This is a required file for Breeze Engine to run" << std::endl;
+		std::cout << "Missing Engine Defaults!\n\nFile: " << appDataPath.string() <<  "\\engineDefaults.bpf\nThis is a required file for Breeze Engine to run\n" << std::endl;
 		return 69;
 	}
 
@@ -160,6 +167,14 @@ int main()
 	glEnableVertexAttribArray(2);
 
 
+	// All Texture setup
+	stbi_set_flip_vertically_on_load(true);
+	int width, height, nrChannels;
+	unsigned char* unzippedTexture = 0;
+	int unzippsedTextureSize = 0;
+	unsigned char* textureData = 0;
+
+
 	//Texture 1 ---------------------------------------------
 	unsigned int texture;
 	glGenTextures(1, &texture);
@@ -170,37 +185,23 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	stbi_set_flip_vertically_on_load(true);
-	int width, height, nrChannels;
+	unZip(unzippedTexture, unzippsedTextureSize, "default_texture.png");
 
-
-	int fucc = 0;
-	zip* z = zip_open("engineDefaults.bpf", 0, &fucc);
-
-	const char* name = "default_texture.png";
-	struct zip_stat st;
-	zip_stat_init(&st);
-	zip_stat(z, name, 0, &st);
-
-	unsigned char* contents = new unsigned char[st.size];
-
-	zip_file* f = zip_fopen(z, name, 0);
-	zip_fread(f, contents, st.size);
-	zip_fclose(f);
-	zip_close(z);
-
-	unsigned char* data = stbi_load_from_memory(contents, st.size, &width, &height, &nrChannels, 0);
-	if(!data)
+	textureData = stbi_load_from_memory(unzippedTexture, unzippsedTextureSize, &width, &height, &nrChannels, 0);
+	if(!textureData)
 	{
-		data = stbi_load("textures/fallback_texture.png", &width, &height, &nrChannels, 0);
+		unZip(unzippedTexture, unzippsedTextureSize, "fallback_texture.png");
+		textureData = stbi_load_from_memory(unzippedTexture, unzippsedTextureSize, &width, &height, &nrChannels, 0);
 	}
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData);
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 
 
-	stbi_image_free(data);
+	stbi_image_free(textureData);
+	delete[] unzippedTexture;
+	unzippsedTextureSize = 0;
 	//-------------------------------------------------------
 
 	//Texture 2 ---------------------------------------------
@@ -213,20 +214,26 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	data = stbi_load("textures/cat.png", &width, &height, &nrChannels, 0);
+	textureData = stbi_load("textures/catt.png", &width, &height, &nrChannels, 0);
+	if(!textureData)
+	{
+		unZip(unzippedTexture, unzippsedTextureSize, "fallback_texture.png");
+		textureData = stbi_load_from_memory(unzippedTexture, unzippsedTextureSize, &width, &height, &nrChannels, 0);
+	}
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData);
 	glGenerateMipmap(GL_TEXTURE_2D);
 
-	stbi_image_free(data);
+	stbi_image_free(textureData);
+	delete[] unzippedTexture;
+	unzippsedTextureSize = 0;
+
 	//-------------------------------------------------------
 
 
 	defaultShader.use();
 	glUniform1i(glGetUniformLocation(defaultShader.ID, "texture1"), 0);
 	glUniform1i(glGetUniformLocation(defaultShader.ID, "texture2"), 1);
-
-
 
 
 
@@ -246,7 +253,7 @@ int main()
 
 		//Rendering
 		glEnable(GL_DEPTH_TEST);
-		glClearColor(0.5f, 0.8f, 0.8f, 1.0f);
+		glClearColor((float)111/255, (float)242/255, (float)149/255, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
@@ -393,4 +400,29 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	mainCam.scrollInput(yoffset);
+}
+
+void unZip(unsigned char* &contents, int &stSize, std::string file)
+{
+	int zipError = 0;
+	zip* z = zip_open(engineDefaultsPath.c_str(), 0, &zipError);
+
+	const char* name = file.c_str();
+	struct zip_stat st;
+	zip_stat_init(&st);
+	zip_stat(z, name, 0, &st);
+
+	contents = new unsigned char[st.size];
+
+	zip_file* f = zip_fopen(z, name, 0);
+	if (f != NULL)
+	{
+		zip_fread(f, contents, st.size);
+		zip_fclose(f);
+		zip_close(z);
+	}
+
+
+	stSize = st.size;
+
 }
