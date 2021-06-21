@@ -7,6 +7,8 @@
 #include "camera.h"
 
 #include <iostream>
+#include <stdio.h>
+#include <zip.h>
 
 //OpenGL Mathematics
 #include <glm/glm.hpp>
@@ -26,6 +28,9 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
+//Engine Stuff
+FILE *stream;
+
 //User Settings
 const float SCREEN_WIDTH = 1280.0f;
 const float SCREEN_HEIGHT = 720.0f;
@@ -40,14 +45,22 @@ float lastFrame 	= 0.0f; // The last frame's time
 float mixValue = 0.2f;
 
 // Camera setup
-Camera mainCam(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera mainCam(glm::vec3(0.0f, 0.0f, 3.0f), 90.0f);
 
 float lastMouseX = SCREEN_WIDTH / 2;
 float lastMouseY = SCREEN_HEIGHT / 2;
 bool firstMouse = true;
 
+
 int main()
 {
+
+
+	if(!fopen_s(&stream, "../textures/fallback_texture.png", "r"))
+	{
+		std::cout << "Missing file: textures/fallback_texture.png!" << std::endl << "This is a required file for Breeze Engine to run" << std::endl;
+		return 69;
+	}
 
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -159,10 +172,33 @@ int main()
 
 	stbi_set_flip_vertically_on_load(true);
 	int width, height, nrChannels;
-	unsigned char* data = stbi_load("textures/brick.jpg", &width, &height, &nrChannels, 0);
+
+
+	int fucc = 0;
+	zip* z = zip_open("engineDefaults.bpf", 0, &fucc);
+
+	const char* name = "default_texture.png";
+	struct zip_stat st;
+	zip_stat_init(&st);
+	zip_stat(z, name, 0, &st);
+
+	unsigned char* contents = new unsigned char[st.size];
+
+	zip_file* f = zip_fopen(z, name, 0);
+	zip_fread(f, contents, st.size);
+	zip_fclose(f);
+	zip_close(z);
+
+	unsigned char* data = stbi_load_from_memory(contents, st.size, &width, &height, &nrChannels, 0);
+	if(!data)
+	{
+		data = stbi_load("textures/fallback_texture.png", &width, &height, &nrChannels, 0);
+	}
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 	glGenerateMipmap(GL_TEXTURE_2D);
+
+
 
 	stbi_image_free(data);
 	//-------------------------------------------------------
@@ -235,7 +271,7 @@ int main()
 
 		// Projection Matrix
 		glm::mat4 projection;
-		projection = glm::perspective(glm::radians(mainCam.cameraFOV), SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
+		projection = glm::perspective(glm::radians(mainCam.cameraFOV), SCREEN_WIDTH / SCREEN_HEIGHT, 0.01f, 100.0f);
 
 
 		int modelLoc = glGetUniformLocation(defaultShader.ID, "model");

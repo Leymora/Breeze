@@ -40,7 +40,7 @@ public:
     float mouseSensitivity;
     float cameraFOV;
 
-    Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), float yaw = YAW, float pitch = PITCH, float fov = FOV, float speed = SPEED, float sensitivity = SENSITIVITY);
+    Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), float fov = FOV, float sensitivity = SENSITIVITY, float speed = SPEED, float yaw = YAW, float pitch = PITCH);
 
     const glm::mat4 getViewMatrix();
     

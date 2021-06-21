@@ -1,6 +1,6 @@
 #include "camera.h"
 
-Camera::Camera(glm::vec3 position, float yaw, float pitch, float fov, float speed, float sensitivity)
+Camera::Camera(glm::vec3 position, float fov, float sensitivity, float speed, float yaw, float pitch)
 {
     this->up = glm::vec3(0.0f, 1.0f, 0.0f);
     this->front = glm::vec3(0.0f, 0.0f, -1.0f);
