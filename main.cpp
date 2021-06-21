@@ -28,11 +28,13 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
-void unZip(unsigned char* &contents, int &stSize, std::string file);
+void unZip(unsigned char* &contents, int &stSize, std::string zipFile, std::string file);
 
 
 //Engine Stuff
-FILE *stream;
+const std::string APP_DATA_PATH = std::filesystem::temp_directory_path().parent_path().parent_path().parent_path().string() += "\\Roaming\\BreezeEngine\\";
+const std::string ENGINE_DEFAULTS_PATH = APP_DATA_PATH + "engineDefaults.bpf";
+const std::string CURRENT_PATH = std::filesystem::current_path().string() += "\\";
 
 //User Settings
 const float SCREEN_WIDTH = 1280.0f;
@@ -54,18 +56,18 @@ float lastMouseX = SCREEN_WIDTH / 2;
 float lastMouseY = SCREEN_HEIGHT / 2;
 bool firstMouse = true;
 
-std::filesystem::path appDataPath = std::filesystem::temp_directory_path().parent_path().parent_path().parent_path() += "\\Roaming\\BreezeEngine";
-std::string engineDefaultsPath = appDataPath.string() + "\\engineDefaults.bpf";
+
 
 int main()
 {
 
-	if(!std::filesystem::exists(appDataPath))
-		std::filesystem::create_directories(appDataPath);
+	if(!std::filesystem::exists(APP_DATA_PATH))
+		std::filesystem::create_directories(APP_DATA_PATH);
 	
-	if(!std::filesystem::exists(engineDefaultsPath))
+	if(!std::filesystem::exists(ENGINE_DEFAULTS_PATH))
 	{
-		std::cout << "Missing Engine Defaults!\n\nFile: " << appDataPath.string() <<  "\\engineDefaults.bpf\nThis is a required file for Breeze Engine to run\n" << std::endl;
+		std::cout << "Missing Engine Defaults!\n\nFile: " << APP_DATA_PATH <<  "engineDefaults.bpf\nThis is a required file for Breeze Engine to run\n" << std::endl;
+		std::cout << CURRENT_PATH << std::endl;
 		return 69;
 	}
 
@@ -97,8 +99,8 @@ int main()
 	}
 
 	
-	Shader defaultShader("shaders/default_vertex.glsl", "shaders/default_fragment.glsl");
-	Shader breathingShader("shaders/default_vertex.glsl", "shaders/breathing_fragment.glsl");
+	Shader defaultShader((CURRENT_PATH + "shaders/default_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/default_fragment.glsl").c_str());
+	Shader breathingShader((CURRENT_PATH + "shaders/default_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/breathing_fragment.glsl").c_str());
 
 	float cube[] = {
     -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
@@ -185,12 +187,12 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	unZip(unzippedTexture, unzippsedTextureSize, "default_texture.png");
+	unZip(unzippedTexture, unzippsedTextureSize, ENGINE_DEFAULTS_PATH, "default_texture.png");
 
 	textureData = stbi_load_from_memory(unzippedTexture, unzippsedTextureSize, &width, &height, &nrChannels, 0);
 	if(!textureData)
 	{
-		unZip(unzippedTexture, unzippsedTextureSize, "fallback_texture.png");
+		unZip(unzippedTexture, unzippsedTextureSize, ENGINE_DEFAULTS_PATH, "fallback_texture.png");
 		textureData = stbi_load_from_memory(unzippedTexture, unzippsedTextureSize, &width, &height, &nrChannels, 0);
 	}
 
@@ -200,8 +202,6 @@ int main()
 
 
 	stbi_image_free(textureData);
-	delete[] unzippedTexture;
-	unzippsedTextureSize = 0;
 	//-------------------------------------------------------
 
 	//Texture 2 ---------------------------------------------
@@ -214,10 +214,14 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	textureData = stbi_load("textures/catt.png", &width, &height, &nrChannels, 0);
+
+	unZip(unzippedTexture, unzippsedTextureSize, APP_DATA_PATH + "engineTextures.bpf", "brick.jpg");
+
+	textureData = stbi_load_from_memory(unzippedTexture, unzippsedTextureSize, &width, &height, &nrChannels, 0);
+
 	if(!textureData)
 	{
-		unZip(unzippedTexture, unzippsedTextureSize, "fallback_texture.png");
+		unZip(unzippedTexture, unzippsedTextureSize, ENGINE_DEFAULTS_PATH, "fallback_texture.png");
 		textureData = stbi_load_from_memory(unzippedTexture, unzippsedTextureSize, &width, &height, &nrChannels, 0);
 	}
 
@@ -225,8 +229,7 @@ int main()
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	stbi_image_free(textureData);
-	delete[] unzippedTexture;
-	unzippsedTextureSize = 0;
+
 
 	//-------------------------------------------------------
 
@@ -402,10 +405,10 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 	mainCam.scrollInput(yoffset);
 }
 
-void unZip(unsigned char* &contents, int &stSize, std::string file)
+void unZip(unsigned char* &contents, int &stSize, std::string zipFile, std::string file)
 {
 	int zipError = 0;
-	zip* z = zip_open(engineDefaultsPath.c_str(), 0, &zipError);
+	zip* z = zip_open(zipFile.c_str(), 0, &zipError);
 
 	const char* name = file.c_str();
 	struct zip_stat st;
