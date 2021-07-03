@@ -157,11 +157,16 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="shader.cpp" />
     <ClCompile Include="stb_image.cpp" />
+    <ClCompile Include="textRenderer.cpp" />
+    <ClCompile Include="zipManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h" />
+    <ClInclude Include="consts.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="stb_image.h" />
+    <ClInclude Include="textRenderer.h" />
+    <ClInclude Include="zipManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

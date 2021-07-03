@@ -16,7 +16,9 @@
 
 class textRenderer
 {
-public:
+private:
+
+	zipManager zipper;
 
 	struct Character
 	{
@@ -25,12 +27,19 @@ public:
 		glm::ivec2	 	Bearing;
 		unsigned int	Advance;
 	};
-	unsigned int textVAO, textVBO;
+
+	unsigned int textVAO, textVBO = 0;
 	std::map<char, Character> Characters;
-	zipManager zipper;
+
+	unsigned char* unzippedFont = 0;
+	int unzippedFontSize = 0;
+	unsigned int fontTexture = 0;
+	FT_Library ft;
+	FT_Face defaultFont = FT_Face();
+
+public:
 
 	textRenderer();
-
-private:
 	void renderText(Shader &s, std::string text, float x, float y, float scale, glm::vec3 color);
+	void init(int textSize = 18);
 };
