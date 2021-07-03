@@ -1,19 +1,24 @@
-
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include "consts.h"
 #include "stb_image.h"
 #include "shader.h"
 #include "camera.h"
+#include "zipManager.h"
 
 #include <iostream>
 #include <filesystem>
-#include <zip.h>
+#include <map>
 
 //OpenGL Mathematics
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+// FreeType Text Rendering
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 //Prototypes
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -28,17 +33,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
-void unZip(unsigned char* &contents, int &stSize, std::string zipFile, std::string file);
+void renderText(Shader &s, std::string text, float x, float y, float scale, glm::vec3 color);
 
-
-//Engine Stuff
-const std::string APP_DATA_PATH = std::filesystem::temp_directory_path().parent_path().parent_path().parent_path().string() += "\\Roaming\\BreezeEngine\\";
-const std::string ENGINE_DEFAULTS_PATH = APP_DATA_PATH + "engineDefaults.bpf";
-const std::string CURRENT_PATH = std::filesystem::current_path().string() += "\\";
-
-//User Settings
-const float SCREEN_WIDTH = 1280.0f;
-const float SCREEN_HEIGHT = 720.0f;
 bool bWireframe = false;
 
 // Frames Per Second management
@@ -56,6 +52,9 @@ float lastMouseX = SCREEN_WIDTH / 2;
 float lastMouseY = SCREEN_HEIGHT / 2;
 bool firstMouse = true;
 
+glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+
+zipManager zipper;
 
 
 int main()
@@ -66,10 +65,15 @@ int main()
 	
 	if(!std::filesystem::exists(ENGINE_DEFAULTS_PATH))
 	{
-		std::cout << "Missing Engine Defaults!\n\nFile: " << APP_DATA_PATH <<  "engineDefaults.bpf\nThis is a required file for Breeze Engine to run\n" << std::endl;
+		std::cout << "ERROR! Missing Engine Defaults!\n\nFile: " << APP_DATA_PATH <<  "engineDefaults.bpf\nThis is a required file for Breeze Engine to run\n" << std::endl;
 		std::cout << CURRENT_PATH << std::endl;
 		return 69;
 	}
+
+
+	//Font Stuff
+
+
 
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -80,7 +84,7 @@ int main()
 	GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Breeze One", NULL, NULL);
 	if (window == NULL)
 	{
-		std::cout << "GLFW window creation failed" << std::endl;
+		std::cout << "ERROR! GLFW window creation failed" << std::endl;
 		glfwTerminate();
 		return -1;
 	}
@@ -94,13 +98,15 @@ int main()
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
-		std::cout << "Failed to initialize GLAD" << std::endl;
+		std::cout << "ERROR! Failed to initialize GLAD" << std::endl;
 		return -1;
 	}
 
-	
 	Shader defaultShader((CURRENT_PATH + "shaders/default_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/default_fragment.glsl").c_str());
 	Shader breathingShader((CURRENT_PATH + "shaders/default_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/breathing_fragment.glsl").c_str());
+	Shader lightShader((CURRENT_PATH + "shaders/light_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/light_fragment.glsl").c_str());
+	Shader lightCubeShader((CURRENT_PATH + "shaders/lightCube_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/lightCube_fragment.glsl").c_str());
+	Shader textShader((CURRENT_PATH + "shaders/text_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/text_fragment.glsl").c_str());
 
 	float cube[] = {
     -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
@@ -144,14 +150,20 @@ int main()
      0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
     -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
     -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-};
+	};
 
-	unsigned int VBO, VAO;
-	glGenVertexArrays(1, &VAO);
+	glm::vec3 cubePositions[] =
+	{
+		glm::vec3(0.0f, 0.0f, 0.0f),
+		glm::vec3(2.0f, 5.0f, -4.0f)
+	};
+
+	unsigned int VBO, cubeVAO;
+	glGenVertexArrays(1, &cubeVAO);
 	glGenBuffers(1, &VBO);
 
 	// ######## Cube Setup ##########
-	glBindVertexArray(VAO);
+	glBindVertexArray(cubeVAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cube), cube, GL_STATIC_DRAW);
@@ -160,20 +172,22 @@ int main()
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
-	//Color Attribute
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5* sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-	
-	//Tex Attribute
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(2);
 
+	// ######### Light Cube Setup #########
+
+	unsigned int lightVAO;
+	glGenVertexArrays(1, &lightVAO);
+	glBindVertexArray(lightVAO);
+
+	//Position Attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
 
 	// All Texture setup
 	stbi_set_flip_vertically_on_load(true);
 	int width, height, nrChannels;
 	unsigned char* unzippedTexture = 0;
-	int unzippsedTextureSize = 0;
+	int unzippedTextureSize = 0;
 	unsigned char* textureData = 0;
 
 
@@ -187,13 +201,13 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	unZip(unzippedTexture, unzippsedTextureSize, ENGINE_DEFAULTS_PATH, "default_texture.png");
+	zipper.unZip(unzippedTexture, unzippedTextureSize, ENGINE_DEFAULTS_PATH, "default_texture.png");
 
-	textureData = stbi_load_from_memory(unzippedTexture, unzippsedTextureSize, &width, &height, &nrChannels, 0);
+	textureData = stbi_load_from_memory(unzippedTexture, unzippedTextureSize, &width, &height, &nrChannels, 0);
 	if(!textureData)
 	{
-		unZip(unzippedTexture, unzippsedTextureSize, ENGINE_DEFAULTS_PATH, "fallback_texture.png");
-		textureData = stbi_load_from_memory(unzippedTexture, unzippsedTextureSize, &width, &height, &nrChannels, 0);
+		zipper.unZip(unzippedTexture, unzippedTextureSize, ENGINE_DEFAULTS_PATH, "fallback_texture.png");
+		textureData = stbi_load_from_memory(unzippedTexture, unzippedTextureSize, &width, &height, &nrChannels, 0);
 	}
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData);
@@ -215,14 +229,14 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 
-	unZip(unzippedTexture, unzippsedTextureSize, APP_DATA_PATH + "engineTextures.bpf", "brick.jpg");
+	zipper.unZip(unzippedTexture, unzippedTextureSize, APP_DATA_PATH + "engineTextures.bpf", "brick.jpg");
 
-	textureData = stbi_load_from_memory(unzippedTexture, unzippsedTextureSize, &width, &height, &nrChannels, 0);
+	textureData = stbi_load_from_memory(unzippedTexture, unzippedTextureSize, &width, &height, &nrChannels, 0);
 
 	if(!textureData)
 	{
-		unZip(unzippedTexture, unzippsedTextureSize, ENGINE_DEFAULTS_PATH, "fallback_texture.png");
-		textureData = stbi_load_from_memory(unzippedTexture, unzippsedTextureSize, &width, &height, &nrChannels, 0);
+		zipper.unZip(unzippedTexture, unzippedTextureSize, ENGINE_DEFAULTS_PATH, "fallback_texture.png");
+		textureData = stbi_load_from_memory(unzippedTexture, unzippedTextureSize, &width, &height, &nrChannels, 0);
 	}
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData);
@@ -234,12 +248,62 @@ int main()
 	//-------------------------------------------------------
 
 
+
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // Disable byte-alignment restriction
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	for (unsigned char c = 0; c < 128; c++)
+	{
+		if (FT_Load_Char(defaultFont, c, FT_LOAD_RENDER) == true) // FT_Load_Char returns false if it loads correctly
+		{
+			std::cout << "ERROR! :FREETYPE: Failed to load Glyph" << std::endl;
+			continue;
+		}
+
+		unsigned int fontTexture;
+		glGenTextures(1, &fontTexture);
+		glBindTexture(GL_TEXTURE_2D, fontTexture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, defaultFont->glyph->bitmap.width, defaultFont->glyph->bitmap.rows, 0, GL_RED, GL_UNSIGNED_BYTE, defaultFont->glyph->bitmap.buffer);
+		
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		Character character =
+		{
+			fontTexture,
+			glm::ivec2(defaultFont->glyph->bitmap.width, defaultFont->glyph->bitmap.rows),
+			glm::ivec2(defaultFont->glyph->bitmap_left, defaultFont->glyph->bitmap_top),
+			static_cast<unsigned int>(defaultFont->glyph->advance.x)
+		};
+		Characters.insert(std::pair<char, Character>(c, character));
+	}
+	glBindTexture(GL_TEXTURE_2D, 0);
+	FT_Done_Face(defaultFont);
+	FT_Done_FreeType(ft);
+
+
+	glGenVertexArrays(1, &textVAO);
+	glGenBuffers(1, &textVBO);
+	glBindVertexArray(textVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, textVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+
+
 	defaultShader.use();
 	glUniform1i(glGetUniformLocation(defaultShader.ID, "texture1"), 0);
 	glUniform1i(glGetUniformLocation(defaultShader.ID, "texture2"), 1);
 
-
-
+	textShader.use();
+	glm::mat4 textProjection = glm::ortho(0.0f, static_cast<float>(SCREEN_WIDTH), 0.0f, static_cast<float>(SCREEN_HEIGHT));
+	glUniformMatrix4fv(glGetUniformLocation(textShader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(textProjection));
 
 
 	//############### GAME LOOP #################
@@ -268,13 +332,13 @@ int main()
 		defaultShader.setFloat("mixValue", mixValue);
 
 
-		defaultShader.use();
+
 		
 		//Matrices ---------------------------------------
 
 		// Model Matrix
 		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5f, 1.0f, 0.0f));
+		//model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5f, 1.0f, 0.0f));
 
 		// View Matrix
 		glm::mat4 view = mainCam.getViewMatrix();
@@ -284,18 +348,33 @@ int main()
 		projection = glm::perspective(glm::radians(mainCam.cameraFOV), SCREEN_WIDTH / SCREEN_HEIGHT, 0.01f, 100.0f);
 
 
-		int modelLoc = glGetUniformLocation(defaultShader.ID, "model");
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		
-		int viewLoc = glGetUniformLocation(defaultShader.ID, "view");
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
-		
-		int projectionLoc = glGetUniformLocation(defaultShader.ID, "projection");
-		defaultShader.setMat4("projection", projection);
+		lightShader.use();
+		lightShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
+		lightShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
 
+		lightShader.setMat4("projection", projection);
+		lightShader.setMat4("view", view);
 
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, cubePositions[0]);
+		model = glm::rotate(model, glm::radians((float)glfwGetTime() * 69), glm::vec3(1.0f, 0.3f, 0.5f));
+		lightShader.setMat4("model", model);
+
+		glBindVertexArray(cubeVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
-			
+
+		lightCubeShader.use();
+		lightCubeShader.setMat4("projection", projection);
+		lightCubeShader.setMat4("view", view);
+
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, lightPos);
+		model = glm::scale(model, glm::vec3(0.2f));
+		lightCubeShader.setMat4("model", model);
+		glBindVertexArray(lightVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		renderText(textShader, "I have AIDS", 25, 25, 1, glm::vec3(0.0f, 0.0470588235f, 0.0509803922f));
 
 		//Swap the buffers and check/call events
 		glfwSwapBuffers(window);
@@ -307,7 +386,7 @@ int main()
 
 	//End of Main
 
-	glDeleteVertexArrays(1, &VAO);
+	glDeleteVertexArrays(1, &cubeVAO);
 	glDeleteBuffers(1, &VBO);
 
 	glfwTerminate();
@@ -405,27 +484,45 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 	mainCam.scrollInput(yoffset);
 }
 
-void unZip(unsigned char* &contents, int &stSize, std::string zipFile, std::string file)
+
+void renderText(Shader& s, std::string text, float x, float y, float scale, glm::vec3 color)
 {
-	int zipError = 0;
-	zip* z = zip_open(zipFile.c_str(), 0, &zipError);
+	s.use();
+	s.setFloat3("textColor", color.x, color.y, color.z);
+	glActiveTexture(GL_TEXTURE0);
+	glBindVertexArray(textVAO);
 
-	const char* name = file.c_str();
-	struct zip_stat st;
-	zip_stat_init(&st);
-	zip_stat(z, name, 0, &st);
-
-	contents = new unsigned char[st.size];
-
-	zip_file* f = zip_fopen(z, name, 0);
-	if (f != NULL)
+	std::string::const_iterator c;
+	for (c = text.begin(); c != text.end(); c++)
 	{
-		zip_fread(f, contents, st.size);
-		zip_fclose(f);
-		zip_close(z);
+		Character ch = Characters[*c];
+
+		float xpos = x + ch.Bearing.x * scale;
+		float ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
+
+		float w = ch.Size.x * scale;
+		float h = ch.Size.y * scale;
+
+		float vertices[6][4] =
+		{
+			{xpos, ypos + h,		0.0f, 0.0f},
+			{xpos, ypos, 			0.0f, 1.0f},
+			{xpos + w, ypos, 		1.0f, 1.0f},
+
+			{xpos, ypos + h, 		0.0f, 0.0f},
+			{xpos + w, ypos, 		1.0f, 1.0f},
+			{xpos + w, ypos + h,	1.0f, 0.0f}
+		};
+
+	glBindTexture(GL_TEXTURE_2D, ch.TextureID);
+	glBindBuffer(GL_ARRAY_BUFFER, textVBO);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+	x += (ch.Advance >> 6) * scale;
+
 	}
-
-
-	stSize = st.size;
+	glBindVertexArray(0);
+	glBindTexture(GL_TEXTURE_2D, 0);
 
 }

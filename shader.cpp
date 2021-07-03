@@ -29,7 +29,7 @@ Shader::Shader(const char* vertexSource, const char* fragmentSource)
     }
     catch (std::ifstream::failure e)
     {
-        std::cout << "ERROR::SHADER.H - FILE NOT SUCCESFULLY READ" << std::endl;
+        std::cout << "STORM::SHADER.CPP - FILE NOT SUCCESFULLY READ" << std::endl;
     }
     const char* vShaderCode = vertexCode.c_str();
     const char* fShaderCode = fragmentCode.c_str();
@@ -48,7 +48,7 @@ Shader::Shader(const char* vertexSource, const char* fragmentSource)
     if (!success)
     {
         glGetShaderInfoLog(vertex, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER.H - VERTEX COMPILATION FAILED\n" << infoLog << std::endl;
+        std::cout << "STORM::SHADER.CPP - VERTEX COMPILATION FAILED\n" << infoLog << std::endl;
     };
 
     // Fragment Shader
@@ -60,7 +60,7 @@ Shader::Shader(const char* vertexSource, const char* fragmentSource)
     if (!success)
     {
         glGetShaderInfoLog(vertex, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER.H - FRAGMENT COMPILATION FAILED\n" << infoLog << std::endl;
+        std::cout << "STORM::SHADER.CPP - FRAGMENT COMPILATION FAILED\n" << infoLog << std::endl;
     };
 
 
@@ -74,7 +74,7 @@ Shader::Shader(const char* vertexSource, const char* fragmentSource)
     if (!success)
     {
         glGetProgramInfoLog(ID, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER.H - PROGRAM LINKING FAILED\n" << infoLog << std::endl;
+        std::cout << "STORM::SHADER.CPP - PROGRAM LINKING FAILED\n" << infoLog << std::endl;
     }
 
     // Delete shaders as they're linked into our program now and are no longer needed
@@ -102,9 +102,17 @@ void Shader::setFloat(const std::string& name, float value) const
 {
     glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
 }
+void Shader::setFloat3(const std::string& name, float value1, float value2, float value3) const
+{
+    glUniform3f(glGetUniformLocation(ID, name.c_str()), value1, value2, value3);
+}
 void Shader::setFloat4(const std::string& name, float value1, float value2, float value3, float value4) const
 {
     glUniform4f(glGetUniformLocation(ID, name.c_str()), value1, value2, value3, value4);
+}
+void Shader::setVec3(const std::string& name, float x, float y, float z) const
+{
+    glUniform3f(glGetUniformLocation(ID, name.c_str()), x, y, z);
 }
 void Shader::setMat4(const std::string &name, const glm::mat4 &mat) const
 {
@@ -123,7 +131,7 @@ void Shader::checkComplieErrors(GLuint shader, std::string type)
         if (!success)
         {
             glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-            std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n";
+            std::cout << "STORM::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n";
         }
 
     }
@@ -133,7 +141,7 @@ void Shader::checkComplieErrors(GLuint shader, std::string type)
         if (!success)
         {
             glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-            std::cout << "ERROR::SHADER_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n";
+            std::cout << "STORM::SHADER_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n";
         }
     }
 
