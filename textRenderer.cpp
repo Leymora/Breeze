@@ -2,13 +2,12 @@
 
 textRenderer::textRenderer()
 {
-
 }
 
 void textRenderer::renderText(Shader& s, std::string text, float x, float y, float scale, glm::vec3 color)
 {
 
-    s.use();
+	s.use();
 	s.setFloat3("textColor", color.x, color.y, color.z);
 	glActiveTexture(GL_TEXTURE0);
 	glBindVertexArray(textVAO);
@@ -35,16 +34,21 @@ void textRenderer::renderText(Shader& s, std::string text, float x, float y, flo
 			{xpos + w, ypos + h,	1.0f, 0.0f}
 		};
 
-	glBindTexture(GL_TEXTURE_2D, ch.TextureID);
-	glBindBuffer(GL_ARRAY_BUFFER, textVBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glDrawArrays(GL_TRIANGLES, 0, 6);
-	x += (ch.Advance >> 6) * scale;
+		glBindTexture(GL_TEXTURE_2D, ch.TextureID);
+		glBindBuffer(GL_ARRAY_BUFFER, textVBO);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		x += (ch.Advance >> 6) * scale;
 
 	}
 	glBindVertexArray(0);
 	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+FT_Face textRenderer::getFont() const
+{
+	return this->defaultFont;
 }
 
 void textRenderer::init(int textSize)

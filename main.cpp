@@ -2,24 +2,24 @@
 #include <GLFW/glfw3.h>
 
 #include "consts.h"
-#include "stb_image.h"
+#include "engineSettings.h"
 #include "shader.h"
 #include "camera.h"
 #include "zipManager.h"
 #include "textRenderer.h"
+#include "stb_image.h"
 
 #include <iostream>
+#include <ctime>
 #include <filesystem>
+#include <fstream>
+#include <ostream>
 #include <map>
 
 //OpenGL Mathematics
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-
-// FreeType Text Rendering
-#include <ft2build.h>
-#include FT_FREETYPE_H
 
 //Prototypes
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -34,13 +34,22 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
+void getFPS();
+
 bool bWireframe = false;
+
+time_t now = time(0);
+tm ltm;
+errno_t ffs = localtime_s(&ltm, &now);
+
+std::string buildNumber = "";
 
 // Frames Per Second management
 float currentFrame 	= 0.0f;	// Calculate deltatime with this value
 float deltaTime 	= 0.0f; // Time it took to calculate one frame
 float lastFrame 	= 0.0f; // The last frame's time
-
+float frames		= 0.0f;
+float framesItTook	= 0.0f;
 
 float mixValue = 0.0f;
 
@@ -58,14 +67,73 @@ textRenderer txtRndr;
 
 int main()
 {
+	int timeDay = ltm.tm_mday;
+	int timeMonth = 1 + ltm.tm_mon;
+	int timeYear = ltm.tm_year - 100;
 
-	if(!std::filesystem::exists(APP_DATA_PATH))
+	buildNumber.append(std::to_string(timeDay));
+	buildNumber.append(std::to_string(timeMonth));
+	buildNumber.append(std::to_string(timeYear));
+
+	if (!std::filesystem::exists(APP_DATA_PATH))
 		std::filesystem::create_directories(APP_DATA_PATH);
 	
-	if(!std::filesystem::exists(ENGINE_DEFAULTS_PATH))
+	if (!std::filesystem::exists(ENGINE_DEFAULTS_PATH))
 	{
 		std::cout << "ERROR! Missing Engine Defaults!\n\nFile: " << APP_DATA_PATH <<  "engineDefaults.bpf\nThis is a required file for Breeze Engine to run\n" << std::endl;
-		std::cout << CURRENT_PATH << std::endl;
+		return 69;
+	}
+	if (!std::filesystem::exists(CURRENT_PATH + "shaders\\default_vertex.glsl"))
+	{
+		std::cout << "ERROR! Missing File: " << CURRENT_PATH + "shaders\\default_vertex.glsl" << "\nA new file has been generated. Please close and start Breeze Engine again\n" << std::endl;
+		
+		unsigned char* unzippedShader = 0;
+		int unzippedShaderSize = 0;
+		zipper.unZip(unzippedShader, unzippedShaderSize, ENGINE_DEFAULTS_PATH, "default_vertex.glsl");
+
+		std::ofstream ofs(CURRENT_PATH + "shaders\\default_vertex.glsl");
+		ofs.write(reinterpret_cast<const char*>(unzippedShader), unzippedShaderSize);
+		ofs.close();
+		return 69;
+	}
+	if (!std::filesystem::exists(CURRENT_PATH + "shaders\\default_fragment.glsl"))
+	{
+		std::cout << "ERROR! Missing File: " << CURRENT_PATH + "shaders\\default_fragment.glsl" << "\nA new file has been generated. Please close and start Breeze Engine again\n" << std::endl;
+		
+		unsigned char* unzippedShader = 0;
+		int unzippedShaderSize = 0;
+		zipper.unZip(unzippedShader, unzippedShaderSize, ENGINE_DEFAULTS_PATH, "default_fragment.glsl");
+
+		std::ofstream ofs(CURRENT_PATH + "shaders\\default_fragment.glsl");
+		ofs.write(reinterpret_cast<const char*>(unzippedShader), unzippedShaderSize);
+		ofs.close();
+		return 69;
+	}
+
+	if (!std::filesystem::exists(CURRENT_PATH + "shaders\\text_vertex.glsl"))
+	{
+		std::cout << "ERROR! Missing File: " << CURRENT_PATH + "shaders\\text_vertex.glsl" << "\nA new file has been generated. Please close and start Breeze Engine again\n" << std::endl;
+		
+		unsigned char* unzippedShader = 0;
+		int unzippedShaderSize = 0;
+		zipper.unZip(unzippedShader, unzippedShaderSize, ENGINE_DEFAULTS_PATH, "text_vertex.glsl");
+
+		std::ofstream ofs(CURRENT_PATH + "shaders\\text_vertex.glsl");
+		ofs.write(reinterpret_cast<const char*>(unzippedShader), unzippedShaderSize);
+		ofs.close();
+		return 69;
+	}
+	if (!std::filesystem::exists(CURRENT_PATH + "shaders\\text_fragment.glsl"))
+	{
+		std::cout << "ERROR! Missing File: " << CURRENT_PATH + "shaders\\text_fragment.glsl" << "\nA new file has been generated. Please close and start Breeze Engine again\n" << std::endl;
+		
+		unsigned char* unzippedShader = 0;
+		int unzippedShaderSize = 0;
+		zipper.unZip(unzippedShader, unzippedShaderSize, ENGINE_DEFAULTS_PATH, "text_fragment.glsl");
+
+		std::ofstream ofs(CURRENT_PATH + "shaders\\text_fragment.glsl");
+		ofs.write(reinterpret_cast<const char*>(unzippedShader), unzippedShaderSize);
+		ofs.close();
 		return 69;
 	}
 
@@ -75,7 +143,7 @@ int main()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 
-	GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Breeze One", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Breeze Engine", NULL, NULL);
 	if (window == NULL)
 	{
 		std::cout << "ERROR! GLFW window creation failed" << std::endl;
@@ -100,7 +168,7 @@ int main()
 	Shader lightShader((CURRENT_PATH + "shaders/light_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/light_fragment.glsl").c_str());
 	Shader lightCubeShader((CURRENT_PATH + "shaders/lightCube_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/lightCube_fragment.glsl").c_str());
 	Shader textShader((CURRENT_PATH + "shaders/text_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/text_fragment.glsl").c_str());
-	txtRndr.init();
+	txtRndr.init(14);
 
 	float cube[] = {
     -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
@@ -241,9 +309,6 @@ int main()
 
 	//-------------------------------------------------------
 
-
-
-
 	defaultShader.use();
 	glUniform1i(glGetUniformLocation(defaultShader.ID, "texture1"), 0);
 	glUniform1i(glGetUniformLocation(defaultShader.ID, "texture2"), 1);
@@ -256,7 +321,7 @@ int main()
 	//############### GAME LOOP #################
 	while (!glfwWindowShouldClose(window))
 	{
-
+		
 		currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
@@ -264,6 +329,7 @@ int main()
 		//Check for user input (Keystrokes, mouse movement, etc..)
 		processInput(window); // Inputs that needs to be held down (example: W,A,S,D for movement) gets checked here
 		glfwSetKeyCallback(window, key_callback); // Inputs that need to be checked only once when pressed (example: ESC for opening the menu) gets checked here
+
 
 		//Rendering
 		glEnable(GL_DEPTH_TEST);
@@ -278,9 +344,6 @@ int main()
 
 		defaultShader.setFloat("mixValue", mixValue);
 
-
-
-		
 		//Matrices ---------------------------------------
 
 		// Model Matrix
@@ -321,19 +384,20 @@ int main()
 		glBindVertexArray(lightVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-		txtRndr.renderText(textShader, "FOV: " + std::to_string((int)mainCam.cameraFOV), 25, 25, 1, glm::vec3(0.0f, 0.0941176471f, 0.1019607843f));
+		txtRndr.renderText(textShader, "Breeze Engine Build: " + buildNumber, 4, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK);
+		txtRndr.renderText(textShader, "Delta Time: " + std::to_string(deltaTime), 258, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK);
+		txtRndr.renderText(textShader, "FOV: " + std::to_string((int)mainCam.cameraFOV), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK);
 
+		frames = 0;
 		
-
 		//Swap the buffers and check/call events
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+
 	}
 	//############# END OF GAME LOOP ###############
 
 
-
-	//End of Main
 
 	glDeleteVertexArrays(1, &cubeVAO);
 	glDeleteBuffers(1, &VBO);
@@ -341,9 +405,8 @@ int main()
 	glfwTerminate();
 	return 0;
 
+	//End of Main
 }
-
-
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -356,12 +419,12 @@ void toggleWireframeMode(GLFWwindow* window)
 		if (bWireframe == true)
 		{
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-			glfwSetWindowTitle(window, "Breeze One - Wireframe mode");
+			glfwSetWindowTitle(window, "Breeze Engine - Wireframe mode");
 		}
 		else
 		{
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-			glfwSetWindowTitle(window, "Breeze One");			
+			glfwSetWindowTitle(window, "Breeze Engine");			
 		}
 }
 
@@ -431,4 +494,9 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	mainCam.scrollInput(yoffset);
+}
+
+void getFPS()
+{
+
 }

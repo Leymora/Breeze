@@ -56,5 +56,8 @@
     <ClInclude Include="zipManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="engineSettings.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

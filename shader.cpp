@@ -29,7 +29,7 @@ Shader::Shader(const char* vertexSource, const char* fragmentSource)
     }
     catch (std::ifstream::failure e)
     {
-        std::cout << "STORM::SHADER.CPP - FILE NOT SUCCESFULLY READ" << std::endl;
+        std::cout << "ERROR! :SHADER.CPP: - FILE NOT SUCCESFULLY READ" << std::endl;
     }
     const char* vShaderCode = vertexCode.c_str();
     const char* fShaderCode = fragmentCode.c_str();
@@ -48,7 +48,7 @@ Shader::Shader(const char* vertexSource, const char* fragmentSource)
     if (!success)
     {
         glGetShaderInfoLog(vertex, 512, NULL, infoLog);
-        std::cout << "STORM::SHADER.CPP - VERTEX COMPILATION FAILED\n" << infoLog << std::endl;
+        std::cout << "ERROR! :SHADER.CPP: - VERTEX COMPILATION FAILED\n" << infoLog << std::endl;
     };
 
     // Fragment Shader
@@ -60,7 +60,7 @@ Shader::Shader(const char* vertexSource, const char* fragmentSource)
     if (!success)
     {
         glGetShaderInfoLog(vertex, 512, NULL, infoLog);
-        std::cout << "STORM::SHADER.CPP - FRAGMENT COMPILATION FAILED\n" << infoLog << std::endl;
+        std::cout << "ERROR! :SHADER.CPP: - FRAGMENT COMPILATION FAILED\n" << infoLog << std::endl;
     };
 
 
@@ -74,7 +74,7 @@ Shader::Shader(const char* vertexSource, const char* fragmentSource)
     if (!success)
     {
         glGetProgramInfoLog(ID, 512, NULL, infoLog);
-        std::cout << "STORM::SHADER.CPP - PROGRAM LINKING FAILED\n" << infoLog << std::endl;
+        std::cout << "ERROR! :SHADER.CPP: - PROGRAM LINKING FAILED\n" << infoLog << std::endl;
     }
 
     // Delete shaders as they're linked into our program now and are no longer needed
@@ -131,7 +131,7 @@ void Shader::checkComplieErrors(GLuint shader, std::string type)
         if (!success)
         {
             glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-            std::cout << "STORM::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n";
+            std::cout << "ERROR! :SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n";
         }
 
     }
@@ -141,7 +141,7 @@ void Shader::checkComplieErrors(GLuint shader, std::string type)
         if (!success)
         {
             glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-            std::cout << "STORM::SHADER_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n";
+            std::cout << "ERROR! :SHADER_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n";
         }
     }
 

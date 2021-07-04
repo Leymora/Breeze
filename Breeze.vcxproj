@@ -163,6 +163,7 @@
   <ItemGroup>
     <ClInclude Include="camera.h" />
     <ClInclude Include="consts.h" />
+    <ClInclude Include="engineSettings.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="textRenderer.h" />

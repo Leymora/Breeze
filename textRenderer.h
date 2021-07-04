@@ -41,5 +41,6 @@ public:
 
 	textRenderer();
 	void renderText(Shader &s, std::string text, float x, float y, float scale, glm::vec3 color);
+	FT_Face getFont() const;
 	void init(int textSize = 18);
 };
