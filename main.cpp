@@ -8,12 +8,14 @@
 #include "zipManager.h"
 #include "textRenderer.h"
 #include "stb_image.h"
+#include "line.h"
 
 #include <iostream>
 #include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <ostream>
+#include <sstream>
 #include <map>
 
 //OpenGL Mathematics
@@ -37,6 +39,8 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void getFPS();
 
 bool bWireframe = false;
+
+std::string to_string_with_format(float variable, int nrOfDecimals);
 
 time_t now = time(0);
 tm ltm;
@@ -169,6 +173,8 @@ int main()
 	Shader lightCubeShader((CURRENT_PATH + "shaders/lightCube_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/lightCube_fragment.glsl").c_str());
 	Shader textShader((CURRENT_PATH + "shaders/text_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/text_fragment.glsl").c_str());
 	txtRndr.init(14);
+
+
 
 	float cube[] = {
     -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
@@ -317,6 +323,7 @@ int main()
 	glm::mat4 textProjection = glm::ortho(0.0f, static_cast<float>(SCREEN_WIDTH), 0.0f, static_cast<float>(SCREEN_HEIGHT));
 	glUniformMatrix4fv(glGetUniformLocation(textShader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(textProjection));
 
+	Line zLine(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
 	//############### GAME LOOP #################
 	while (!glfwWindowShouldClose(window))
@@ -386,7 +393,15 @@ int main()
 
 		txtRndr.renderText(textShader, "Breeze Engine Build: " + buildNumber, 4, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK);
 		txtRndr.renderText(textShader, "Delta Time: " + std::to_string(deltaTime), 258, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK);
-		txtRndr.renderText(textShader, "FOV: " + std::to_string((int)mainCam.cameraFOV), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK);
+		txtRndr.renderText(textShader, "Camera Pos X: " + to_string_with_format(zLine.startPoint.x, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK);
+		txtRndr.renderText(textShader, "Camera Pos Y: " + to_string_with_format(mainCam.position.z, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 2, 1, COL_BREEZE_DARK);
+		txtRndr.renderText(textShader, "Camera Pos Z: " + to_string_with_format(mainCam.position.y, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 3, 1, COL_BREEZE_DARK);
+
+
+
+		zLine.setMVP(projection * view);
+		zLine.setPos(glm::vec3(mainCam.position.x, mainCam.position.y, mainCam.position.z -1), glm::vec3(mainCam.position.x, mainCam.position.y + 0.5, mainCam.position.z - 1));
+		zLine.draw();
 
 		frames = 0;
 		
@@ -499,4 +514,12 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 void getFPS()
 {
 
+}
+
+std::string to_string_with_format(float variable, int nrOfDecimals)
+{
+	std::ostringstream out;
+    out.precision(nrOfDecimals);
+    out << std::fixed << variable;
+    return out.str();
 }

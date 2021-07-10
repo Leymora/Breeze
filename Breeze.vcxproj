@@ -154,6 +154,7 @@
   <ItemGroup>
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="glad.c" />
+    <ClCompile Include="line.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="shader.cpp" />
     <ClCompile Include="stb_image.cpp" />
@@ -164,6 +165,7 @@
     <ClInclude Include="camera.h" />
     <ClInclude Include="consts.h" />
     <ClInclude Include="engineSettings.h" />
+    <ClInclude Include="line.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="textRenderer.h" />
