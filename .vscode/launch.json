@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/x64/Debug/Breeze.exe",
-            "args": [],
+            "args": ["-d"],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],

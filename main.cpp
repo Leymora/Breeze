@@ -51,6 +51,7 @@ tm ltm;
 errno_t ffs = localtime_s(&ltm, &now);
 
 std::string buildNumber = "";
+std::string windowName = "Breeze Engine";
 
 // Frames Per Second management
 float currentFrame 	= 0.0f;	// Calculate deltatime with this value
@@ -92,8 +93,8 @@ int main(int argc, char *argv[])
 	int timeMonth = 1 + ltm.tm_mon;
 	int timeYear = ltm.tm_year - 100;
 
-	buildNumber.append(std::to_string(timeDay));
-	buildNumber.append(std::to_string(timeMonth));
+	buildNumber.append(std::to_string(timeDay) + "-");
+	buildNumber.append(std::to_string(timeMonth) + "-");
 	buildNumber.append(std::to_string(timeYear));
 
 	if (!std::filesystem::exists(APP_DATA_PATH))
@@ -164,7 +165,7 @@ int main(int argc, char *argv[])
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 
-	GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Breeze Engine", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, windowName.c_str(), NULL, NULL);
 	if (window == NULL)
 	{
 		std::cout << "ERROR! GLFW window creation failed" << std::endl;
@@ -354,15 +355,9 @@ int main(int argc, char *argv[])
 	while (!glfwWindowShouldClose(window))
 	{
 		if (WIREFRAME_MODE == true)
-		{
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-			glfwSetWindowTitle(window, "Breeze Engine - Wireframe mode");
-		}
 		else
-		{
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-			glfwSetWindowTitle(window, "Breeze Engine");			
-		}
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);			
 
 		currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
@@ -497,12 +492,10 @@ void toggleWireframeMode(GLFWwindow* window)
 		if (WIREFRAME_MODE == true)
 		{
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-			glfwSetWindowTitle(window, "Breeze Engine - Wireframe mode");
 		}
 		else
 		{
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-			glfwSetWindowTitle(window, "Breeze Engine");			
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);			
 		}
 }
 
@@ -576,17 +569,18 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 
 void checkArgs(int range, char* args[])
 {
-	bool found = false;
-
 	if (std::string(args[range]) == "-d" || std::string(args[range]) == "--debug")
 	{
-		DEBUG_MODE = true;
+		DEBUG_MODE = true; windowName = "Breeze Engine [Debug Mode]"; return;
 	}
 	if (std::string(args[range]) == "-w" || std::string(args[range]) == "--wireframe")
 	{
-		WIREFRAME_MODE = true;
+		WIREFRAME_MODE = true; return;
 	}
-
+	if (std::string(args[range]) == "-os" || std::string(args[range]) == "--opengl-standard")
+	{
+		CoordSys = Coordinate_System::OPENGL_STANDARD; return;
+	}
 }
 
 void getFPS()
