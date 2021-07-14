@@ -23,6 +23,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+
 //Prototypes
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
@@ -67,7 +68,7 @@ bool firstMouse = true;
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 
 zipManager zipper;
-textRenderer txtRndr;
+textRenderer txtRndr; 
 
 Coordinate_System CoordSys = BREEZE_ENGINE;
 
