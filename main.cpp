@@ -37,7 +37,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
-void checkArgs(int range, char* args[]); //Probably really unoptimized but shut up pls
+void checkArgs(int range, char* args[]); //Probably really unoptimized but shut up pls ( It only happens once at startup so it's fine >:c )
 
 void getFPS();
 
