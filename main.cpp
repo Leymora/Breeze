@@ -37,9 +37,12 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
+void checkArgs(int range, char* args[]); //Probably really unoptimized but shut up pls
+
 void getFPS();
 
-bool bWireframe = false;
+
+bool hasCheckedArgs = false;
 
 std::string to_string_with_format(float variable, int nrOfDecimals);
 
@@ -56,7 +59,7 @@ float lastFrame 	= 0.0f; // The last frame's time
 float frames		= 0.0f;
 float framesItTook	= 0.0f;
 
-float mixValue = 0.0f;
+
 
 // Camera setup
 Camera mainCam(glm::vec3(0.0f, 0.0f, 3.0f), 90.0f);
@@ -64,16 +67,27 @@ Camera mainCam(glm::vec3(0.0f, 0.0f, 3.0f), 90.0f);
 float lastMouseX = SCREEN_WIDTH / 2;
 float lastMouseY = SCREEN_HEIGHT / 2;
 bool firstMouse = true;
+float mixValue = 0.0f;
 
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 
 zipManager zipper;
 textRenderer txtRndr; 
 
-Coordinate_System CoordSys = BREEZE_ENGINE;
+Coordinate_System CoordSys = Coordinate_System::BREEZE_ENGINE;
 
-int main()
+int main(int argc, char *argv[])
 {
+
+	//Check Command Line Arguments
+	if (argc >= 2 && hasCheckedArgs == false)
+	{
+		for (int i = 0; i < argc; i++)
+		{
+			checkArgs(i, argv);
+		}
+	}
+
 	int timeDay = ltm.tm_mday;
 	int timeMonth = 1 + ltm.tm_mon;
 	int timeYear = ltm.tm_year - 100;
@@ -339,7 +353,16 @@ int main()
 	//############### GAME LOOP #################
 	while (!glfwWindowShouldClose(window))
 	{
-		
+		if (WIREFRAME_MODE == true)
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			glfwSetWindowTitle(window, "Breeze Engine - Wireframe mode");
+		}
+		else
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			glfwSetWindowTitle(window, "Breeze Engine");			
+		}
 
 		currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
@@ -404,39 +427,44 @@ int main()
 		glBindVertexArray(lightVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 
+
+	if (DEBUG_MODE == true)
+	{
+		
 		txtRndr.renderText(textShader, "Breeze Engine Build: " + buildNumber, 4, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK);
 		txtRndr.renderText(textShader, "Delta Time: " + std::to_string(deltaTime), 258, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK);
+		txtRndr.renderText(textShader, "Debug Mode: " + std::to_string(DEBUG_MODE), 512, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK );
 
 
 
-	if (CoordSys == BREEZE_ENGINE)
-	{
-		xLineBreeze.setMVP(projection * view);
-		xLineBreeze.draw();
-		yLineBreeze.setMVP(projection * view);
-		yLineBreeze.draw();
-		zLineBreeze.setMVP(projection * view);
-		zLineBreeze.draw();
+		if (CoordSys == Coordinate_System::BREEZE_ENGINE)
+		{
+			xLineBreeze.setMVP(projection * view);
+			xLineBreeze.draw();
+			yLineBreeze.setMVP(projection * view);
+			yLineBreeze.draw();
+			zLineBreeze.setMVP(projection * view);
+			zLineBreeze.draw();
 
-		txtRndr.renderText(textShader, "Camera Pos X: " + to_string_with_format(mainCam.position.x, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14, 1, COL_X_AXIS);
-		txtRndr.renderText(textShader, "Camera Pos Y: " + to_string_with_format((mainCam.position.z * -1), 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 2, 1, COL_Y_AXIS);
-		txtRndr.renderText(textShader, "Camera Pos Z: " + to_string_with_format(mainCam.position.y, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 3, 1, COL_Z_AXIS);
+			txtRndr.renderText(textShader, "Camera Pos X: " + to_string_with_format(mainCam.position.x, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14, 1, COL_X_AXIS);
+			txtRndr.renderText(textShader, "Camera Pos Y: " + to_string_with_format((mainCam.position.z * -1), 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 2, 1, COL_Y_AXIS);
+			txtRndr.renderText(textShader, "Camera Pos Z: " + to_string_with_format(mainCam.position.y, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 3, 1, COL_Z_AXIS);
+		}
+		else if (CoordSys == Coordinate_System::OPENGL_STANDARD)
+		{
+			xLine.setMVP(projection * view);
+			xLine.draw();
+			yLine.setMVP(projection * view);
+			yLine.draw();
+			zLine.setMVP(projection * view);
+			zLine.draw();
+
+			txtRndr.renderText(textShader, "Camera Pos X: " + to_string_with_format(mainCam.position.x, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14, 1, COL_X_AXIS);
+			txtRndr.renderText(textShader, "Camera Pos Y: " + to_string_with_format(mainCam.position.y, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 2, 1, COL_Y_AXIS);
+			txtRndr.renderText(textShader, "Camera Pos Z: " + to_string_with_format(mainCam.position.z, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 3, 1, COL_Z_AXIS);
+		}
+
 	}
-	else if (CoordSys == OPENGL_STANDARD)
-	{
-		xLine.setMVP(projection * view);
-		xLine.draw();
-		yLine.setMVP(projection * view);
-		yLine.draw();
-		zLine.setMVP(projection * view);
-		zLine.draw();
-
-		txtRndr.renderText(textShader, "Camera Pos X: " + to_string_with_format(mainCam.position.x, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14, 1, COL_X_AXIS);
-		txtRndr.renderText(textShader, "Camera Pos Y: " + to_string_with_format(mainCam.position.y, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 2, 1, COL_Y_AXIS);
-		txtRndr.renderText(textShader, "Camera Pos Z: " + to_string_with_format(mainCam.position.z, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 3, 1, COL_Z_AXIS);
-	}
-
-
 
 		frames = 0;
 		
@@ -465,8 +493,8 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 void toggleWireframeMode(GLFWwindow* window)
 {
-		bWireframe = !bWireframe;
-		if (bWireframe == true)
+		WIREFRAME_MODE = !WIREFRAME_MODE;
+		if (WIREFRAME_MODE == true)
 		{
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			glfwSetWindowTitle(window, "Breeze Engine - Wireframe mode");
@@ -544,6 +572,21 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	mainCam.scrollInput(yoffset);
+}
+
+void checkArgs(int range, char* args[])
+{
+	bool found = false;
+
+	if (std::string(args[range]) == "-d" || std::string(args[range]) == "--debug")
+	{
+		DEBUG_MODE = true;
+	}
+	if (std::string(args[range]) == "-w" || std::string(args[range]) == "--wireframe")
+	{
+		WIREFRAME_MODE = true;
+	}
+
 }
 
 void getFPS()
