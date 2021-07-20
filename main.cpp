@@ -193,6 +193,16 @@ int main(int argc, char *argv[])
 	txtRndr.init(14);
 
 
+	unsigned char* unzippedLogo = 0;
+	int unzippedLogoSize = 0;
+	int logoChannels = 0;
+	zipper.unZip(unzippedLogo, unzippedLogoSize, ENGINE_DEFAULTS_PATH, "BreezeLogo.png");
+
+	GLFWimage windowLogo[1];
+	windowLogo[0].pixels = stbi_load_from_memory(unzippedLogo, unzippedLogoSize, &windowLogo[0].width, &windowLogo[0].height, &logoChannels, 0);
+	glfwSetWindowIcon(window, 1, windowLogo);
+	stbi_image_free(windowLogo[0].pixels);
+
 
 	float cube[] = {
     -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,

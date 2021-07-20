@@ -166,10 +166,17 @@
     <ClInclude Include="consts.h" />
     <ClInclude Include="engineSettings.h" />
     <ClInclude Include="line.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="textRenderer.h" />
     <ClInclude Include="zipManager.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Breeze.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="icon1.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
