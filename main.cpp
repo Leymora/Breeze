@@ -1,5 +1,5 @@
 #include <glad/glad.h>
-#include <GLFW/glfw3.h>
+#include <SDL/SDL.h>
 
 #include "consts.h"
 #include "engineSettings.h"
@@ -9,6 +9,7 @@
 #include "textRenderer.h"
 #include "stb_image.h"
 #include "line.h"
+#include "breeze_timer.h"
 
 #include <iostream>
 #include <ctime>
@@ -25,26 +26,30 @@
 
 
 //Prototypes
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void framebuffer_size_callback(SDL_Window* window, int width, int height);
 
-void toggleWireframeMode(GLFWwindow* window);
+void toggleWireframeMode();
 
-void processInput(GLFWwindow* window);
+void processInput(float deltaTime);
 
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+void key_callback(SDL_Window* window, int key, int scancode, int action, int mods);
 
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void mouse_callback(SDL_Window* window, double xpos, double ypos);
 
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void scroll_callback(SDL_Window* window, double xoffset, double yoffset);
 
 void checkArgs(int range, char* args[]); //Probably really unoptimized but shut up pls ( It only happens once at startup so it's fine >:c )
 
 void getFPS();
 
+std::string to_string_with_format(float variable, int nrOfDecimals);
+
+void render();
+
 
 bool hasCheckedArgs = false;
+bool mainWindowRun = true;
 
-std::string to_string_with_format(float variable, int nrOfDecimals);
 
 time_t now = time(0);
 tm ltm;
@@ -54,12 +59,13 @@ std::string buildNumber = "";
 std::string windowName = "Breeze Engine";
 
 // Frames Per Second management
-float currentFrame 	= 0.0f;	// Calculate deltatime with this value
-float deltaTime 	= 0.0f; // Time it took to calculate one frame
-float lastFrame 	= 0.0f; // The last frame's time
-float frames		= 0.0f;
-float framesItTook	= 0.0f;
-
+Breeze_Timer lockClock;
+Breeze_Timer fpsCounterClock;
+float endFrame 			= 0.0f; // The last frame's time
+float frames			= 0.0f;
+float framesItTook 		= 0.0f;
+float msOneGameLoopTook = 0.0f;
+float frameTarget 		= (1000.0f / FRAME_RATE);
 
 
 // Camera setup
@@ -84,9 +90,7 @@ int main(int argc, char *argv[])
 	if (argc >= 2 && hasCheckedArgs == false)
 	{
 		for (int i = 0; i < argc; i++)
-		{
 			checkArgs(i, argv);
-		}
 	}
 
 	int timeDay = ltm.tm_mday;
@@ -159,27 +163,31 @@ int main(int argc, char *argv[])
 		return 69;
 	}
 
-	glfwInit();
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+	SDL_Init(SDL_INIT_VIDEO);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
-	GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, windowName.c_str(), NULL, NULL);
+	SDL_Window* window = SDL_CreateWindow("Breeze Engine",SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL);
 	if (window == NULL)
 	{
-		std::cout << "ERROR! GLFW window creation failed" << std::endl;
-		glfwTerminate();
+		std::cout << "Ya dun fucked up lmao. SDL2 failed to create window" << std::endl;
+		SDL_Quit();
 		return -1;
 	}
-	glfwMakeContextCurrent(window);
-	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-	glfwSetCursorPosCallback(window, mouse_callback);
-	glfwSetScrollCallback(window, scroll_callback);
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Hide and lock the mouse cursor to the center of the window
+	SDL_GL_CreateContext(window);
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 
+	SDL_Renderer* windowRenderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	if (windowRenderer == NULL)
+	{
+		std::cout << "Ya dun fucked up lmao. SDL2 failed to create renderer" << std::endl;
+		SDL_Quit();
+		return -1;
+	}
 
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+	if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
 	{
 		std::cout << "ERROR! Failed to initialize GLAD" << std::endl;
 		return -1;
@@ -192,16 +200,10 @@ int main(int argc, char *argv[])
 	Shader textShader((CURRENT_PATH + "shaders/text_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/text_fragment.glsl").c_str());
 	txtRndr.init(14);
 
-
 	unsigned char* unzippedLogo = 0;
 	int unzippedLogoSize = 0;
 	int logoChannels = 0;
 	zipper.unZip(unzippedLogo, unzippedLogoSize, ENGINE_DEFAULTS_PATH, "BreezeLogo.png");
-
-	GLFWimage windowLogo[1];
-	windowLogo[0].pixels = stbi_load_from_memory(unzippedLogo, unzippedLogoSize, &windowLogo[0].width, &windowLogo[0].height, &logoChannels, 0);
-	glfwSetWindowIcon(window, 1, windowLogo);
-	stbi_image_free(windowLogo[0].pixels);
 
 
 	float cube[] = {
@@ -361,21 +363,34 @@ int main(int argc, char *argv[])
 	Line yLineBreeze(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -0.5f), COL_Y_AXIS);
 	Line zLineBreeze(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.5f, 0.0f), COL_Z_AXIS);
 
-	//############### GAME LOOP #################
-	while (!glfwWindowShouldClose(window))
+	SDL_Event* e = nullptr;
+
+	fpsCounterClock.start(); //Start a timer so FPS can be counted
+	lockClock.start();
+	//######################################################################### GAME LOOP ###########################################################################
+	while (mainWindowRun)
 	{
-		if (WIREFRAME_MODE == true)
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		else
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);			
+		msOneGameLoopTook += lockClock.restart();
+		while (msOneGameLoopTook > frameTarget)
+		{
+			msOneGameLoopTook -= frameTarget;
 
-		currentFrame = glfwGetTime();
-		deltaTime = currentFrame - lastFrame;
-		lastFrame = currentFrame;
+			if (WIREFRAME_MODE == true)
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			else
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-		//Check for user input (Keystrokes, mouse movement, etc..)
-		processInput(window); // Inputs that needs to be held down (example: W,A,S,D for movement) gets checked here
-		glfwSetKeyCallback(window, key_callback); // Inputs that need to be checked only once when pressed (example: ESC for opening the menu) gets checked here
+
+			processInput(frameTarget);
+			if (fpsCounterClock.restart() * 1000 >= 1.0f)
+			{
+				framesItTook = endFrame;
+				endFrame = 0;
+			}
+			
+		}
+
+
 
 
 		//Rendering
@@ -433,70 +448,66 @@ int main(int argc, char *argv[])
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 
 
-	if (DEBUG_MODE == true)
-	{
-		
-		txtRndr.renderText(textShader, "Breeze Engine Build: " + buildNumber, 4, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK);
-		txtRndr.renderText(textShader, "Delta Time: " + std::to_string(deltaTime), 258, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK);
-		txtRndr.renderText(textShader, "Debug Mode: " + std::to_string(DEBUG_MODE), 512, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK );
-
-
-
-		if (CoordSys == Coordinate_System::BREEZE_ENGINE)
+		if (DEBUG_MODE == true)
 		{
-			xLineBreeze.setMVP(projection * view);
-			xLineBreeze.draw();
-			yLineBreeze.setMVP(projection * view);
-			yLineBreeze.draw();
-			zLineBreeze.setMVP(projection * view);
-			zLineBreeze.draw();
+			
+			txtRndr.renderText(textShader, "Breeze Engine Build: " + buildNumber, 4, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK);
+			txtRndr.renderText(textShader, "Ms One Frame Took: " + std::to_string(msOneGameLoopTook), 258, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK);
+			txtRndr.renderText(textShader, "FPS: " + std::to_string(framesItTook), 512, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK);
+			
 
-			txtRndr.renderText(textShader, "Camera Pos X: " + to_string_with_format(mainCam.position.x, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14, 1, COL_X_AXIS);
-			txtRndr.renderText(textShader, "Camera Pos Y: " + to_string_with_format((mainCam.position.z * -1), 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 2, 1, COL_Y_AXIS);
-			txtRndr.renderText(textShader, "Camera Pos Z: " + to_string_with_format(mainCam.position.y, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 3, 1, COL_Z_AXIS);
-		}
-		else if (CoordSys == Coordinate_System::OPENGL_STANDARD)
-		{
-			xLine.setMVP(projection * view);
-			xLine.draw();
-			yLine.setMVP(projection * view);
-			yLine.draw();
-			zLine.setMVP(projection * view);
-			zLine.draw();
+			if (CoordSys == Coordinate_System::BREEZE_ENGINE)
+			{
+				xLineBreeze.setMVP(projection * view);
+				xLineBreeze.draw();
+				yLineBreeze.setMVP(projection * view);
+				yLineBreeze.draw();
+				zLineBreeze.setMVP(projection * view);
+				zLineBreeze.draw();
 
-			txtRndr.renderText(textShader, "Camera Pos X: " + to_string_with_format(mainCam.position.x, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14, 1, COL_X_AXIS);
-			txtRndr.renderText(textShader, "Camera Pos Y: " + to_string_with_format(mainCam.position.y, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 2, 1, COL_Y_AXIS);
-			txtRndr.renderText(textShader, "Camera Pos Z: " + to_string_with_format(mainCam.position.z, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 3, 1, COL_Z_AXIS);
-		}
+				txtRndr.renderText(textShader, "Camera Pos X: " + to_string_with_format(mainCam.position.x, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14, 1, COL_X_AXIS);
+				txtRndr.renderText(textShader, "Camera Pos Y: " + to_string_with_format((mainCam.position.z * -1), 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 2, 1, COL_Y_AXIS);
+				txtRndr.renderText(textShader, "Camera Pos Z: " + to_string_with_format(mainCam.position.y, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 3, 1, COL_Z_AXIS);
+			}
+			else if (CoordSys == Coordinate_System::OPENGL_STANDARD)
+			{
+				xLine.setMVP(projection * view);
+				xLine.draw();
+				yLine.setMVP(projection * view);
+				yLine.draw();
+				zLine.setMVP(projection * view);
+				zLine.draw();
+
+				txtRndr.renderText(textShader, "Camera Pos X: " + to_string_with_format(mainCam.position.x, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14, 1, COL_X_AXIS);
+				txtRndr.renderText(textShader, "Camera Pos Y: " + to_string_with_format(mainCam.position.y, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 2, 1, COL_Y_AXIS);
+				txtRndr.renderText(textShader, "Camera Pos Z: " + to_string_with_format(mainCam.position.z, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 3, 1, COL_Z_AXIS);
+			}
 
 	}
 
-		frames = 0;
-		
-		//Swap the buffers and check/call events
-		glfwSwapBuffers(window);
-		glfwPollEvents();
+	SDL_GL_SwapWindow(window);
+	endFrame++;
 
 	}
-	//############# END OF GAME LOOP ###############
+	//######################################################################### END OF GAME LOOP ###########################################################################
 
 
 
 	glDeleteVertexArrays(1, &cubeVAO);
 	glDeleteBuffers(1, &VBO);
 
-	glfwTerminate();
+	SDL_Quit();
 	return 0;
 
 	//End of Main
 }
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+void framebuffer_size_callback(SDL_Window* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
 }
 
-void toggleWireframeMode(GLFWwindow* window)
+void toggleWireframeMode()
 {
 		WIREFRAME_MODE = !WIREFRAME_MODE;
 		if (WIREFRAME_MODE == true)
@@ -509,52 +520,54 @@ void toggleWireframeMode(GLFWwindow* window)
 		}
 }
 
-void processInput(GLFWwindow* window)
+void processInput(float deltaTime)
 {
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    //Keys that need to be checked continuously
+    const Uint8* keystate = SDL_GetKeyboardState(NULL);
+    if(keystate[SDL_SCANCODE_W])
+    {
+		mainCam.keyboardInput(FORWARD, deltaTime);
+    }
+    if(keystate[SDL_SCANCODE_S])
+    {
+		mainCam.keyboardInput(BACKWARD, deltaTime);
+    }
+    if(keystate[SDL_SCANCODE_A])
+    {
+		mainCam.keyboardInput(LEFT, deltaTime);
+    }
+    if(keystate[SDL_SCANCODE_D])
+    {
+		mainCam.keyboardInput(RIGHT, deltaTime);
+    }
+
+    //Keys that do not need to be checked continuously
+	SDL_Event e;
+	while(SDL_PollEvent(&e))
 	{
-		glfwSetWindowShouldClose(window, GLFW_TRUE);
+		
+		if (e.type == SDL_KEYDOWN)
+		{
+			switch(e.key.keysym.sym)
+			{
+				case SDLK_ESCAPE: std::cout << "Ass" << std::endl; mainWindowRun = false; break;
+				default: break;
+			}
+		}
+		
 	}
 	
-	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-	{
-		mixValue += 0.01f;
-		if (mixValue >= 1.0f)
-		{
-			mixValue = 1.0f;
-		}
-	}
-
-	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-	{
-		mixValue -= 0.01f;
-		if (mixValue <= 0.0f)
-		{
-			mixValue = 0.0f;
-		}
-	}
-
-
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		mainCam.keyboardInput(FORWARD, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		mainCam.keyboardInput(BACKWARD, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		mainCam.keyboardInput(LEFT, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		mainCam.keyboardInput(RIGHT, deltaTime);
-
 }
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+void key_callback(SDL_Window* window, int key, int scancode, int action, int mods)
 {
 	if (key == GLFW_KEY_F && action == GLFW_PRESS)
-		toggleWireframeMode(window);
+		toggleWireframeMode();
 	if (key == GLFW_KEY_F8 && action == GLFW_PRESS)
 		mainCam.cameraFOV = 90;
 	
 }
 
-void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+void mouse_callback(SDL_Window* window, double xpos, double ypos)
 {
 	if (firstMouse == true)
 	{
@@ -572,7 +585,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 
 }
 
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+void scroll_callback(SDL_Window* window, double xoffset, double yoffset)
 {
 	mainCam.scrollInput(yoffset);
 }
@@ -594,6 +607,11 @@ void checkArgs(int range, char* args[])
 }
 
 void getFPS()
+{
+
+}
+
+void render()
 {
 
 }

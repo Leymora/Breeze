@@ -39,6 +39,9 @@
     <ClCompile Include="line.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="breeze_timer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="shader.h">
@@ -66,6 +69,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="breeze_timer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
