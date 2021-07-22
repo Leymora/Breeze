@@ -30,7 +30,9 @@ void framebuffer_size_callback(SDL_Window* window, int width, int height);
 
 void toggleWireframeMode();
 
-void processInput(float deltaTime);
+void processFrameInput(float frameTarget);
+
+void processInput();
 
 void key_callback(SDL_Window* window, int key, int scancode, int action, int mods);
 
@@ -61,10 +63,10 @@ std::string windowName = "Breeze Engine";
 // Frames Per Second management
 Breeze_Timer lockClock;
 Breeze_Timer fpsCounterClock;
-float endFrame 			= 0.0f; // The last frame's time
-float frames			= 0.0f;
-float framesItTook 		= 0.0f;
-float msOneGameLoopTook = 0.0f;
+float currentTime 		= 0.0f;
+float beginFrameTime	= 0.0f;
+float frameTime			= 0.0f;
+float deltaTime			= 0.0f;
 float frameTarget 		= (1000.0f / FRAME_RATE);
 
 
@@ -178,6 +180,7 @@ int main(int argc, char *argv[])
 	}
 	SDL_GL_CreateContext(window);
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+	SDL_SetRelativeMouseMode(SDL_TRUE);
 
 	SDL_Renderer* windowRenderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 	if (windowRenderer == NULL)
@@ -367,29 +370,35 @@ int main(int argc, char *argv[])
 
 	fpsCounterClock.start(); //Start a timer so FPS can be counted
 	lockClock.start();
+
+	//###############################################################################################################################################################
 	//######################################################################### GAME LOOP ###########################################################################
+	//###############################################################################################################################################################
+	
+	currentTime = SDL_GetTicks();
 	while (mainWindowRun)
 	{
-		msOneGameLoopTook += lockClock.restart();
-		while (msOneGameLoopTook > frameTarget)
+		beginFrameTime = SDL_GetTicks();
+		frameTime = beginFrameTime - currentTime;
+		currentTime = beginFrameTime;
+
+	//################################################# EVERYTHING THAT NEEDS TO BE TIED TO FRAMERATE ########################################################
+		while (frameTime > 0.0f)
 		{
-			msOneGameLoopTook -= frameTarget;
-
-			if (WIREFRAME_MODE == true)
-				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-			else
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-
-			processInput(frameTarget);
-			if (fpsCounterClock.restart() * 1000 >= 1.0f)
-			{
-				framesItTook = endFrame;
-				endFrame = 0;
-			}
+			float deltaTime = glm::min(frameTime, frameTarget);
+			frameTime -= deltaTime;
 			
-		}
+			processFrameInput(deltaTime);	
 
+		}
+	//################################################# END OF EVERYTHING THAT NEEDS TO BE TIED TO FRAMERATE ##################################################
+		
+		processInput();
+
+		if (WIREFRAME_MODE == true)
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		else
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 
 
@@ -405,8 +414,6 @@ int main(int argc, char *argv[])
 		glBindTexture(GL_TEXTURE_2D, texture2);
 
 		defaultShader.setFloat("mixValue", mixValue);
-
-		//Matrices ---------------------------------------
 
 		// Model Matrix
 		glm::mat4 model = glm::mat4(1.0f);
@@ -430,7 +437,7 @@ int main(int argc, char *argv[])
 
 		model = glm::mat4(1.0f);
 		model = glm::translate(model, cubePositions[0]);
-		//model = glm::rotate(model, glm::radians((float)glfwGetTime() * 69), glm::vec3(1.0f, 0.3f, 0.5f));
+		model = glm::rotate(model, glm::radians((float)SDL_GetTicks() / 10), glm::vec3(1.0f, 0.3f, 0.5f));
 		lightShader.setMat4("model", model);
 
 		glBindVertexArray(cubeVAO);
@@ -450,12 +457,10 @@ int main(int argc, char *argv[])
 
 		if (DEBUG_MODE == true)
 		{
-			
 			txtRndr.renderText(textShader, "Breeze Engine Build: " + buildNumber, 4, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK);
-			txtRndr.renderText(textShader, "Ms One Frame Took: " + std::to_string(msOneGameLoopTook), 258, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK);
-			txtRndr.renderText(textShader, "FPS: " + std::to_string(framesItTook), 512, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK);
+			txtRndr.renderText(textShader, "Ms One Frame Took: " + std::to_string(deltaTime), 258, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK);
+			txtRndr.renderText(textShader, "FPS: " + std::to_string(deltaTime), 512, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK);
 			
-
 			if (CoordSys == Coordinate_System::BREEZE_ENGINE)
 			{
 				xLineBreeze.setMVP(projection * view);
@@ -489,7 +494,9 @@ int main(int argc, char *argv[])
 	endFrame++;
 
 	}
-	//######################################################################### END OF GAME LOOP ###########################################################################
+	//###############################################################################################################################################################
+	//######################################################################### END OF GAME LOOP ####################################################################
+	//###############################################################################################################################################################
 
 
 
@@ -520,33 +527,36 @@ void toggleWireframeMode()
 		}
 }
 
-void processInput(float deltaTime)
+void processFrameInput(float frameTarget)
 {
     //Keys that need to be checked continuously
     const Uint8* keystate = SDL_GetKeyboardState(NULL);
     if(keystate[SDL_SCANCODE_W])
     {
-		mainCam.keyboardInput(FORWARD, deltaTime);
+		mainCam.keyboardInput(FORWARD, frameTarget);
     }
     if(keystate[SDL_SCANCODE_S])
     {
-		mainCam.keyboardInput(BACKWARD, deltaTime);
+		mainCam.keyboardInput(BACKWARD, frameTarget);
     }
     if(keystate[SDL_SCANCODE_A])
     {
-		mainCam.keyboardInput(LEFT, deltaTime);
+		mainCam.keyboardInput(LEFT, frameTarget);
     }
     if(keystate[SDL_SCANCODE_D])
     {
-		mainCam.keyboardInput(RIGHT, deltaTime);
+		mainCam.keyboardInput(RIGHT, frameTarget);
     }
+	
+}
 
+void processInput()
+{
     //Keys that do not need to be checked continuously
 	SDL_Event e;
 	while(SDL_PollEvent(&e))
-	{
-		
-		if (e.type == SDL_KEYDOWN)
+	{	
+		if (e.type == SDL_KEYDOWN) // KEYBOARD INPUT
 		{
 			switch(e.key.keysym.sym)
 			{
@@ -554,10 +564,23 @@ void processInput(float deltaTime)
 				default: break;
 			}
 		}
-		
+		if (e.type == SDL_MOUSEMOTION) // MOUSE MOVEMENT
+		{
+			int xpos = e.motion.xrel;
+			int ypos = e.motion.yrel;
+
+			if (firstMouse == true)
+			{
+				lastMouseX = xpos;
+				lastMouseY = ypos;
+				firstMouse = false;
+			}
+			mainCam.mouseInput(xpos, (ypos * -1));
+		}
 	}
 	
 }
+
 void key_callback(SDL_Window* window, int key, int scancode, int action, int mods)
 {
 	if (key == GLFW_KEY_F && action == GLFW_PRESS)
