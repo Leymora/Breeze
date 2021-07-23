@@ -153,6 +153,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="breeze_timer.cpp" />
+    <ClCompile Include="breeze_utilities.cpp" />
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="line.cpp" />
@@ -164,6 +165,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="breeze_timer.h" />
+    <ClInclude Include="breeze_utilities.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="consts.h" />
     <ClInclude Include="engineSettings.h" />

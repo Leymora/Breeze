@@ -12,7 +12,7 @@ public:
 	void resume();
 	Uint32 restart();
 
-	Uint32 getTicks() const;
+	Uint32 getMilliseconds() const;
 
 	bool isStarted() const;
 	bool isPaused() const;

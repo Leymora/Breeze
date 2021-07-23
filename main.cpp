@@ -10,6 +10,7 @@
 #include "stb_image.h"
 #include "line.h"
 #include "breeze_timer.h"
+#include "breeze_utilities.h"
 
 #include <iostream>
 #include <ctime>
@@ -18,6 +19,7 @@
 #include <ostream>
 #include <sstream>
 #include <map>
+#include <chrono>
 
 //OpenGL Mathematics
 #include <glm/glm.hpp>
@@ -26,11 +28,10 @@
 
 
 //Prototypes
-void framebuffer_size_callback(SDL_Window* window, int width, int height);
 
 void toggleWireframeMode();
 
-void processFrameInput(float frameTarget);
+void processFrameInput(float deltaTime);
 
 void processInput();
 
@@ -44,10 +45,9 @@ void checkArgs(int range, char* args[]); //Probably really unoptimized but shut 
 
 void getFPS();
 
-std::string to_string_with_format(float variable, int nrOfDecimals);
-
 void render();
 
+double hires_time_in_seconds();
 
 bool hasCheckedArgs = false;
 bool mainWindowRun = true;
@@ -63,11 +63,17 @@ std::string windowName = "Breeze Engine";
 // Frames Per Second management
 Breeze_Timer lockClock;
 Breeze_Timer fpsCounterClock;
-float currentTime 		= 0.0f;
-float beginFrameTime	= 0.0f;
-float frameTime			= 0.0f;
-float deltaTime			= 0.0f;
-float frameTarget 		= (1000.0f / FRAME_RATE);
+double startTime 		= 0.0f;
+double currentTime		= 0.0f;
+double frameTime		= 0.0f;
+double deltaTime		= 0.0f;
+
+//FPS Counter stuff
+double startFPSTime		= 0.0f;
+double currentFPSTime	= 0.0f;
+double frameCounter 	= 0.0f;
+double framesItTook		= 0.0f;
+double msPerFrame		= 0.0f;
 
 
 // Camera setup
@@ -181,14 +187,7 @@ int main(int argc, char *argv[])
 	SDL_GL_CreateContext(window);
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 	SDL_SetRelativeMouseMode(SDL_TRUE);
-
-	SDL_Renderer* windowRenderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-	if (windowRenderer == NULL)
-	{
-		std::cout << "Ya dun fucked up lmao. SDL2 failed to create renderer" << std::endl;
-		SDL_Quit();
-		return -1;
-	}
+	SDL_GL_SetSwapInterval(IS_V_SYNC_ENABLED);
 
 	if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
 	{
@@ -196,9 +195,9 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	Shader defaultShader((CURRENT_PATH + "shaders/default_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/default_fragment.glsl").c_str());
+	//Shader defaultShader((CURRENT_PATH + "shaders/default_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/default_fragment.glsl").c_str());
 	Shader breathingShader((CURRENT_PATH + "shaders/default_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/breathing_fragment.glsl").c_str());
-	Shader lightShader((CURRENT_PATH + "shaders/light_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/light_fragment.glsl").c_str());
+	Shader defaultShader((CURRENT_PATH + "shaders/default_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/default_fragment.glsl").c_str());
 	Shader pointLightShader((CURRENT_PATH + "shaders/pointLight_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/pointLight_fragment.glsl").c_str());
 	Shader textShader((CURRENT_PATH + "shaders/text_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/text_fragment.glsl").c_str());
 	txtRndr.init(14);
@@ -277,7 +276,6 @@ int main(int argc, char *argv[])
     glEnableVertexAttribArray(1);
 
 	// ######### pointLight Setup #########
-
 	unsigned int lightVAO;
 	glGenVertexArrays(1, &lightVAO);
 	glBindVertexArray(lightVAO);
@@ -305,19 +303,14 @@ int main(int argc, char *argv[])
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	zipper.unZip(unzippedTexture, unzippedTextureSize, ENGINE_DEFAULTS_PATH, "default_texture.png");
-
 	textureData = stbi_load_from_memory(unzippedTexture, unzippedTextureSize, &width, &height, &nrChannels, 0);
 	if(!textureData)
 	{
 		zipper.unZip(unzippedTexture, unzippedTextureSize, ENGINE_DEFAULTS_PATH, "fallback_texture.png");
 		textureData = stbi_load_from_memory(unzippedTexture, unzippedTextureSize, &width, &height, &nrChannels, 0);
 	}
-
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData);
 	glGenerateMipmap(GL_TEXTURE_2D);
-
-
-
 	stbi_image_free(textureData);
 	//-------------------------------------------------------
 
@@ -331,23 +324,16 @@ int main(int argc, char *argv[])
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-
 	zipper.unZip(unzippedTexture, unzippedTextureSize, APP_DATA_PATH + "engineTextures.bpf", "brick.jpg");
-
 	textureData = stbi_load_from_memory(unzippedTexture, unzippedTextureSize, &width, &height, &nrChannels, 0);
-
 	if(!textureData)
 	{
 		zipper.unZip(unzippedTexture, unzippedTextureSize, ENGINE_DEFAULTS_PATH, "fallback_texture.png");
 		textureData = stbi_load_from_memory(unzippedTexture, unzippedTextureSize, &width, &height, &nrChannels, 0);
 	}
-
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData);
 	glGenerateMipmap(GL_TEXTURE_2D);
-
 	stbi_image_free(textureData);
-
-
 	//-------------------------------------------------------
 
 	defaultShader.use();
@@ -374,25 +360,26 @@ int main(int argc, char *argv[])
 	//###############################################################################################################################################################
 	//######################################################################### GAME LOOP ###########################################################################
 	//###############################################################################################################################################################
-	
-	currentTime = SDL_GetTicks();
+
+	startTime = SDL_GetTicks();
+	startFPSTime = SDL_GetTicks();
 	while (mainWindowRun)
 	{
-		beginFrameTime = SDL_GetTicks();
-		frameTime = beginFrameTime - currentTime;
-		currentTime = beginFrameTime;
-
-	//################################################# EVERYTHING THAT NEEDS TO BE TIED TO FRAMERATE ########################################################
+		currentTime = SDL_GetTicks();
+		frameTime = currentTime - startTime;
+		msPerFrame = frameTime;
+		startTime = currentTime;
+		getFPS();
+		//################################################# EVERYTHING THAT NEEDS TO BE TIED TO FRAMERATE ########################################################
 		while (frameTime > 0.0f)
 		{
-			float deltaTime = glm::min(frameTime, frameTarget);
+			deltaTime = glm::min(frameTime, FRAME_TARGET);
 			frameTime -= deltaTime;
-			
-			processFrameInput(deltaTime);	
-
+			processFrameInput(deltaTime);
 		}
-	//################################################# END OF EVERYTHING THAT NEEDS TO BE TIED TO FRAMERATE ##################################################
+		//################################################# END OF EVERYTHING THAT NEEDS TO BE TIED TO FRAMERATE #################################################
 		
+
 		processInput();
 
 		if (WIREFRAME_MODE == true)
@@ -400,11 +387,9 @@ int main(int argc, char *argv[])
 		else
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-
-
 		//Rendering
 		glEnable(GL_DEPTH_TEST);
-		glClearColor((float)111/255, (float)242/255, (float)149/255, 1.0f);
+		glClearColor(COL_BREEZE_SKY.x, COL_BREEZE_SKY.y, COL_BREEZE_SKY.z, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
@@ -427,18 +412,22 @@ int main(int argc, char *argv[])
 		projection = glm::perspective(glm::radians(mainCam.cameraFOV), SCREEN_WIDTH / SCREEN_HEIGHT, 0.01f, 100.0f);
 
 
-		lightShader.use();
-		lightShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
-		lightShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-		lightShader.setVec3("lightPos", lightPos.x, lightPos.y, lightPos.z);
+		defaultShader.use();
+		defaultShader.setVec3("material.ambient", COL_BREEZE_SKY);
+		defaultShader.setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+		defaultShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+		defaultShader.setFloat("material.shininess", 32.0f);
+		defaultShader.setVec3("lightColor", COL_BREEZE_SKY);
+		defaultShader.setVec3("lightPos", lightPos);
+		defaultShader.setVec3("viewPos", mainCam.position);
 
-		lightShader.setMat4("projection", projection);
-		lightShader.setMat4("view", view);
+		defaultShader.setMat4("projection", projection);
+		defaultShader.setMat4("view", view);
 
 		model = glm::mat4(1.0f);
 		model = glm::translate(model, cubePositions[0]);
-		model = glm::rotate(model, glm::radians((float)SDL_GetTicks() / 10), glm::vec3(1.0f, 0.3f, 0.5f));
-		lightShader.setMat4("model", model);
+		//model = glm::rotate(model, glm::radians((float)SDL_GetTicks() / 10), glm::vec3(1.0f, 0.3f, 0.5f));
+		defaultShader.setMat4("model", model);
 
 		glBindVertexArray(cubeVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -458,40 +447,32 @@ int main(int argc, char *argv[])
 		if (DEBUG_MODE == true)
 		{
 			txtRndr.renderText(textShader, "Breeze Engine Build: " + buildNumber, 4, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK);
-			txtRndr.renderText(textShader, "Ms One Frame Took: " + std::to_string(deltaTime), 258, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK);
-			txtRndr.renderText(textShader, "FPS: " + std::to_string(deltaTime), 512, SCREEN_HEIGHT - 14, 1, COL_BREEZE_DARK);
-			
+			txtRndr.renderText(textShader, "Ms/Frame: " + to_string_with_format(msPerFrame, 2), 4, SCREEN_HEIGHT - 30, 1, COL_BREEZE_DARK);
+			txtRndr.renderText(textShader, "FPS: " + to_string_with_format(framesItTook, 2), 4, SCREEN_HEIGHT - 56, 1, COL_BREEZE_DARK);
+			txtRndr.renderText(textShader, "Vsync: " + boolToString(IS_V_SYNC_ENABLED), 4, SCREEN_HEIGHT - 72, 1, COL_BREEZE_DARK);
+
 			if (CoordSys == Coordinate_System::BREEZE_ENGINE)
 			{
-				xLineBreeze.setMVP(projection * view);
-				xLineBreeze.draw();
-				yLineBreeze.setMVP(projection * view);
-				yLineBreeze.draw();
-				zLineBreeze.setMVP(projection * view);
-				zLineBreeze.draw();
-
+				xLineBreeze.setMVP(projection * view); xLineBreeze.draw();
+				yLineBreeze.setMVP(projection * view); yLineBreeze.draw();
+				zLineBreeze.setMVP(projection * view); zLineBreeze.draw();
 				txtRndr.renderText(textShader, "Camera Pos X: " + to_string_with_format(mainCam.position.x, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14, 1, COL_X_AXIS);
 				txtRndr.renderText(textShader, "Camera Pos Y: " + to_string_with_format((mainCam.position.z * -1), 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 2, 1, COL_Y_AXIS);
 				txtRndr.renderText(textShader, "Camera Pos Z: " + to_string_with_format(mainCam.position.y, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 3, 1, COL_Z_AXIS);
 			}
 			else if (CoordSys == Coordinate_System::OPENGL_STANDARD)
 			{
-				xLine.setMVP(projection * view);
-				xLine.draw();
-				yLine.setMVP(projection * view);
-				yLine.draw();
-				zLine.setMVP(projection * view);
-				zLine.draw();
-
+				xLine.setMVP(projection * view); xLine.draw();
+				yLine.setMVP(projection * view); yLine.draw();
+				zLine.setMVP(projection * view); zLine.draw();
 				txtRndr.renderText(textShader, "Camera Pos X: " + to_string_with_format(mainCam.position.x, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14, 1, COL_X_AXIS);
 				txtRndr.renderText(textShader, "Camera Pos Y: " + to_string_with_format(mainCam.position.y, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 2, 1, COL_Y_AXIS);
 				txtRndr.renderText(textShader, "Camera Pos Z: " + to_string_with_format(mainCam.position.z, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 3, 1, COL_Z_AXIS);
 			}
 
-	}
+		}
 
-	SDL_GL_SwapWindow(window);
-	endFrame++;
+		SDL_GL_SwapWindow(window);
 
 	}
 	//###############################################################################################################################################################
@@ -509,11 +490,6 @@ int main(int argc, char *argv[])
 	//End of Main
 }
 
-void framebuffer_size_callback(SDL_Window* window, int width, int height)
-{
-	glViewport(0, 0, width, height);
-}
-
 void toggleWireframeMode()
 {
 		WIREFRAME_MODE = !WIREFRAME_MODE;
@@ -527,25 +503,25 @@ void toggleWireframeMode()
 		}
 }
 
-void processFrameInput(float frameTarget)
+void processFrameInput(float deltaTime)
 {
     //Keys that need to be checked continuously
     const Uint8* keystate = SDL_GetKeyboardState(NULL);
     if(keystate[SDL_SCANCODE_W])
     {
-		mainCam.keyboardInput(FORWARD, frameTarget);
+		mainCam.keyboardInput(FORWARD, deltaTime);
     }
     if(keystate[SDL_SCANCODE_S])
     {
-		mainCam.keyboardInput(BACKWARD, frameTarget);
+		mainCam.keyboardInput(BACKWARD, deltaTime);
     }
     if(keystate[SDL_SCANCODE_A])
     {
-		mainCam.keyboardInput(LEFT, frameTarget);
+		mainCam.keyboardInput(LEFT, deltaTime);
     }
     if(keystate[SDL_SCANCODE_D])
     {
-		mainCam.keyboardInput(RIGHT, frameTarget);
+		mainCam.keyboardInput(RIGHT, deltaTime);
     }
 	
 }
@@ -627,11 +603,22 @@ void checkArgs(int range, char* args[])
 	{
 		CoordSys = Coordinate_System::OPENGL_STANDARD; return;
 	}
+	if (std::string(args[range]) == "-vs" || std::string(args[range]) == "--vsync")
+	{
+		IS_V_SYNC_ENABLED = SDL_TRUE; return;
+	}
 }
 
 void getFPS()
 {
-
+	frameCounter++;
+	currentFPSTime = SDL_GetTicks();
+	if (currentFPSTime >= startFPSTime + 1000) // Checks if one second has passed
+	{
+		framesItTook = frameCounter;
+		frameCounter = 0;
+		startFPSTime = currentFPSTime;
+	}
 }
 
 void render()
@@ -639,10 +626,12 @@ void render()
 
 }
 
-std::string to_string_with_format(float variable, int nrOfDecimals)
+double hires_time_in_seconds()
 {
-	std::ostringstream out;
-    out.precision(nrOfDecimals);
-    out << std::fixed << variable;
-    return out.str();
+    typedef std::chrono::high_resolution_clock clock;
+    typedef std::chrono::duration<float, std::milli> duration;
+
+    static clock::time_point start = clock::now();
+    duration elapsed = clock::now() - start;
+    return elapsed.count() / 1000;
 }

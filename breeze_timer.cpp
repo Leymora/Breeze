@@ -2,11 +2,11 @@
 
 Breeze_Timer::Breeze_Timer()
 {
-	startTicks = 0;
-	pausedTicks = 0;
+	this->startTicks = 0;
+	this->pausedTicks = 0;
 
-	started = false;
-	paused = false;
+	this->started = false;
+	this->paused = false;
 }
 
 void Breeze_Timer::start()
@@ -50,16 +50,15 @@ void Breeze_Timer::resume()
 
 Uint32 Breeze_Timer::restart()
 {
-	Uint32 timeToReturn = getTicks();
+	Uint32 timeToReturn = getMilliseconds();
 
 	this->startTicks = SDL_GetTicks();
 	this->pausedTicks = 0;
 
 	return timeToReturn;
-
 }
 
-Uint32 Breeze_Timer::getTicks() const
+Uint32 Breeze_Timer::getMilliseconds() const
 {
 	Uint32 timeToReturn = 0;
 
@@ -67,15 +66,10 @@ Uint32 Breeze_Timer::getTicks() const
 	if (this->started == true)
 	{
 		if (this->paused == true)
-		{
 			timeToReturn = this->pausedTicks;
-		}
 		else
-		{
 			timeToReturn = (SDL_GetTicks() - this->startTicks);
-		}
 	}
-
 	return timeToReturn;
 }
 
