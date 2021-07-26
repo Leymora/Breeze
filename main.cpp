@@ -11,7 +11,7 @@
 #include "line.h"
 #include "breeze_timer.h"
 #include "breeze_utilities.h"
-#include "object.h"
+#include "mesh.h"
 
 #include <iostream>
 #include <ctime>
@@ -60,8 +60,6 @@ errno_t ffs = localtime_s(&ltm, &now);
 
 std::string buildNumber = "";
 std::string windowName = "Breeze Engine";
-
-Object bruh;
 
 // Frames Per Second management
 Breeze_Timer lockClock;
@@ -210,6 +208,8 @@ int main(int argc, char *argv[])
 	int logoChannels = 0;
 	zipper.unZip(unzippedLogo, unzippedLogoSize, ENGINE_DEFAULTS_PATH, "BreezeLogo.png");
 
+
+	Mesh bruh("D:\\Github\\Breeze\\cube.gltf");
 
 	float cube[] = {
     // positions          // normals           // texture coords
@@ -395,7 +395,7 @@ int main(int argc, char *argv[])
 		//################################################# END OF EVERYTHING THAT NEEDS TO BE TIED TO FRAMERATE #################################################
 		
 		processInput();
-		bruh.loadModel("D:\\Github\\Breeze\\cube.gltf");
+		
 
 		if (WIREFRAME_MODE == true)
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);

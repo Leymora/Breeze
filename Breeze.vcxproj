@@ -158,7 +158,8 @@
     <ClCompile Include="glad.c" />
     <ClCompile Include="line.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="object.cpp" />
+    <ClCompile Include="mesh.cpp" />
+    <ClCompile Include="model.cpp" />
     <ClCompile Include="shader.cpp" />
     <ClCompile Include="stb_image.cpp" />
     <ClCompile Include="textRenderer.cpp" />
@@ -171,7 +172,8 @@
     <ClInclude Include="consts.h" />
     <ClInclude Include="engineSettings.h" />
     <ClInclude Include="line.h" />
-    <ClInclude Include="object.h" />
+    <ClInclude Include="mesh.h" />
+    <ClInclude Include="model.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="stb_image.h" />
