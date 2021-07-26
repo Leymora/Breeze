@@ -11,6 +11,7 @@
 #include "line.h"
 #include "breeze_timer.h"
 #include "breeze_utilities.h"
+#include "object.h"
 
 #include <iostream>
 #include <ctime>
@@ -60,6 +61,8 @@ errno_t ffs = localtime_s(&ltm, &now);
 std::string buildNumber = "";
 std::string windowName = "Breeze Engine";
 
+Object bruh;
+
 // Frames Per Second management
 Breeze_Timer lockClock;
 Breeze_Timer fpsCounterClock;
@@ -84,7 +87,7 @@ float lastMouseY = SCREEN_HEIGHT / 2;
 bool firstMouse = true;
 float mixValue = 0.0f;
 
-glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+glm::vec3 lightPos(-2.82f, 3.27f, -8.12f);
 
 zipManager zipper;
 textRenderer txtRndr; 
@@ -255,8 +258,16 @@ int main(int argc, char *argv[])
 
 	glm::vec3 cubePositions[] =
 	{
-		glm::vec3(0.0f, 0.0f, 0.0f),
-		glm::vec3(2.0f, 5.0f, -4.0f)
+        glm::vec3( 0.0f,  0.0f,  0.0f),
+        glm::vec3( 2.0f,  5.0f, -15.0f),
+        glm::vec3(-1.5f, -2.2f, -2.5f),
+        glm::vec3(-3.8f, -2.0f, -12.3f),
+        glm::vec3( 2.4f, -0.4f, -3.5f),
+        glm::vec3(-1.7f,  3.0f, -7.5f),
+        glm::vec3( 1.3f, -2.0f, -2.5f),
+        glm::vec3( 1.5f,  2.0f, -2.5f),
+        glm::vec3( 1.5f,  0.2f, -1.5f),
+        glm::vec3(-1.3f,  1.0f, -1.5f)
 	};
 
 	unsigned int VBO, cubeVAO;
@@ -306,7 +317,7 @@ int main(int argc, char *argv[])
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	zipper.unZip(unzippedTexture, unzippedTextureSize, APP_DATA_PATH + "engineTextures.bpf", "Terrazzo.jpg");
+	zipper.unZip(unzippedTexture, unzippedTextureSize, ENGINE_DEFAULTS_PATH, "default_texture.png");
 	textureData = stbi_load_from_memory(unzippedTexture, unzippedTextureSize, &width, &height, &nrChannels, 0);
 	if(!textureData)
 	{
@@ -328,7 +339,7 @@ int main(int argc, char *argv[])
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	zipper.unZip(unzippedTexture, unzippedTextureSize, APP_DATA_PATH + "engineTextures.bpf", "TerrazzoSpec.png");
+	zipper.unZip(unzippedTexture, unzippedTextureSize, APP_DATA_PATH + "engineTextures.bpf", "TestSpec2.png");
 	textureData = stbi_load_from_memory(unzippedTexture, unzippedTextureSize, &width, &height, &nrChannels, 0);
 	if(!textureData)
 	{
@@ -384,6 +395,7 @@ int main(int argc, char *argv[])
 		//################################################# END OF EVERYTHING THAT NEEDS TO BE TIED TO FRAMERATE #################################################
 		
 		processInput();
+		bruh.loadModel("D:\\Github\\Breeze\\cube.gltf");
 
 		if (WIREFRAME_MODE == true)
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -416,23 +428,34 @@ int main(int argc, char *argv[])
 
 		defaultShader.use();
 		defaultShader.setFloat("material.shininess", 32.0f);
-		defaultShader.setVec3("light.ambient", 1.0f, 1.0f, 1.0f);
-		defaultShader.setVec3("light.diffuse", 1.0f, 1.0f, 1.0f);
+		defaultShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
+		defaultShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
 		defaultShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
-		defaultShader.setVec3("lightPos", lightPos);
+		defaultShader.setFloat("light.constant", 1.0f);
+		defaultShader.setFloat("light.linear", 0.09f);
+		defaultShader.setFloat("light.quadratic", 0.032f);
+		defaultShader.setVec3("light.position", lightPos);
 		defaultShader.setVec3("viewPos", mainCam.position);
 
 		defaultShader.setMat4("projection", projection);
 		defaultShader.setMat4("view", view);
 
 
-		model = glm::mat4(1.0f);
-		model = glm::translate(model, cubePositions[0]);
-		//model = glm::rotate(model, glm::radians((float)SDL_GetTicks() / 10), glm::vec3(1.0f, 0.3f, 0.5f));
-		defaultShader.setMat4("model", model);
+
 
 		glBindVertexArray(cubeVAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
+		for (unsigned int i = 0; i < 10; i++)
+		{
+			model = glm::mat4(1.0f);
+			model = glm::translate(model, cubePositions[i]);
+			float angle = 20.0f * i;
+			//model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+			defaultShader.setMat4("model", model);
+
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+		}
+		
+		
 
 		pointLightShader.use();
 		pointLightShader.setMat4("projection", projection);
@@ -440,7 +463,7 @@ int main(int argc, char *argv[])
 
 		model = glm::mat4(1.0f);
 		model = glm::translate(model, lightPos);
-		model = glm::scale(model, glm::vec3(0.2f));
+		model = glm::scale(model, glm::vec3(1.0f));
 		pointLightShader.setMat4("model", model);
 		glBindVertexArray(lightVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
