@@ -6,7 +6,10 @@
 #include <nlohmann/json.hpp>
 #include <vector>
 #include <string>
+#include <stdio.h>
 #include "shader.h"
+#include "boost/lexical_cast.hpp"
+
 
 //OpenGL Mathematics
 #include <glm/glm.hpp>
@@ -36,14 +39,14 @@ public:
 	std::vector<unsigned int>	indices;
 	std::vector<Texture>		textures;
 
-	Mesh(std::string path);
-	void Draw(Shader &shader);
+	Mesh(char* path);
+	void Draw(Shader& shader);
 
 
 private:
 
 	//Render data
 	unsigned int VAO, VBO, EBO;
-	void loadMesh(std::string path);
+	void loadMesh(char* path);
 	void setupMesh();
 };

@@ -209,7 +209,8 @@ int main(int argc, char *argv[])
 	zipper.unZip(unzippedLogo, unzippedLogoSize, ENGINE_DEFAULTS_PATH, "BreezeLogo.png");
 
 
-	Mesh bruh("D:\\Github\\Breeze\\cube.gltf");
+	char * fucksake = (char*)"D:\\Github\\Breeze\\cube2.bin";
+	Mesh bruh(fucksake);
 
 	float cube[] = {
     // positions          // normals           // texture coords
@@ -305,7 +306,6 @@ int main(int argc, char *argv[])
 	unsigned char* unzippedTexture = 0;
 	int unzippedTextureSize = 0;
 	unsigned char* textureData = 0;
-
 
 	//Texture 1 ---------------------------------------------
 	unsigned int texture;
