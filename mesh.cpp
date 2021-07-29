@@ -3,7 +3,7 @@
 Mesh::Mesh(char* path)
 {
     loadMesh(path);
-    setupMesh();
+    //setupMesh();
 }
 
 void Mesh::loadMesh(char* path)
@@ -19,12 +19,10 @@ void Mesh::loadMesh(char* path)
     //unsigned int URIbyteLength = j["buffers"][0]["byteLength"].get<unsigned int>();
 
     
-	char buffer0[840];
+	std::vector<unsigned char> buffer0[840];
 	FILE *fh;
-    char bufferView0[288];
+    std::vector<unsigned char> bufferView0[288];
     unsigned int bufferView0Data = 0; 
-
-    //glGenBuffers(1, &buffer0Data);
 
     fh = fopen(path, "r");
     fread(buffer0, sizeof(char), 840, fh);
@@ -35,7 +33,7 @@ void Mesh::loadMesh(char* path)
     
     for (int i = 0; i < 288; i++)
     {
-        std::stringstream str(std::to_string(bufferView0[i]));
+        std::stringstream str(bufferView0[i].data());
         //bufferView0Data <<= 8;
         //bufferView0Data |= bufferView0[i];
         str >> bufferView0Data;
@@ -43,9 +41,9 @@ void Mesh::loadMesh(char* path)
     std::cout << bufferView0Data << std::endl;
 
    
-
-    glBindBuffer(GL_ARRAY_BUFFER, bufferView0Data);
-    glBufferData(GL_ARRAY_BUFFER, 288, bufferView0, GL_STATIC_DRAW);
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, 288, &bufferView0, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8, (void*)0);
 
     std::cout << buffer0 << std::endl;

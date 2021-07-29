@@ -8,7 +8,6 @@
 #include <string>
 #include <stdio.h>
 #include "shader.h"
-#include "boost/lexical_cast.hpp"
 
 
 //OpenGL Mathematics

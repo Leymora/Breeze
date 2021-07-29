@@ -10,7 +10,7 @@ Camera::Camera(glm::fvec3 position, float fov, float sensitivity, float speed, f
     this->yaw = yaw;
     this->pitch = pitch;
     this->cameraFOV = fov;
-    this->cameraSpeed = speed / 1000;
+    this->cameraSpeed = speed / 100;
     this->mouseSensitivity = sensitivity;
 
     updateCamera();
