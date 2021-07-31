@@ -11,7 +11,7 @@
 #include "line.h"
 #include "breeze_timer.h"
 #include "breeze_utilities.h"
-#include "mesh.h"
+#include "model.h"
 
 #include <iostream>
 #include <ctime>
@@ -208,9 +208,8 @@ int main(int argc, char *argv[])
 	int logoChannels = 0;
 	zipper.unZip(unzippedLogo, unzippedLogoSize, ENGINE_DEFAULTS_PATH, "BreezeLogo.png");
 
-
-	char * fucksake = (char*)"D:\\Github\\Breeze\\cube2.bin";
-	Mesh bruh(fucksake);
+	std::string fucksake = "D:\\Github\\Breeze\\bruhCube.obj";
+	Model bruh(fucksake);
 
 	float cube[] = {
     // positions          // normals           // texture coords
@@ -468,6 +467,7 @@ int main(int argc, char *argv[])
 		glBindVertexArray(lightVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 
+		bruh.Draw(defaultShader);
 
 
 

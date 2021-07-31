@@ -3,10 +3,10 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
-#include <nlohmann/json.hpp>
 #include <vector>
 #include <string>
 #include <stdio.h>
+#include "stb_image.h"
 #include "shader.h"
 
 
@@ -15,19 +15,21 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-using json = nlohmann::json;
 
 struct Vertex
 {
 	glm::vec3 Position;
 	glm::vec3 Normal;
 	glm::vec2 TexCoords;
+	glm::vec3 Tangent;
+	glm::vec3 Bitangent;
 };
 
 struct Texture
 {
 	unsigned int id;
 	std::string type;
+	std::string path;
 };
 
 class Mesh
@@ -38,7 +40,7 @@ public:
 	std::vector<unsigned int>	indices;
 	std::vector<Texture>		textures;
 
-	Mesh(char* path);
+	Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures);
 	void Draw(Shader& shader);
 
 
@@ -46,6 +48,5 @@ private:
 
 	//Render data
 	unsigned int VAO, VBO, EBO;
-	void loadMesh(char* path);
 	void setupMesh();
 };

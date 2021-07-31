@@ -69,6 +69,7 @@
         "unordered_map": "cpp",
         "xhash": "cpp",
         "numeric": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "set": "cpp"
     }
 }
