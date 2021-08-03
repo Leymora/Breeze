@@ -13,10 +13,19 @@
 #include <cstdlib>
 #include <array>
 #include <limits>
+#include <functional>
 
 
 #include "stb_image.h"
 #include "nlohmann/json.hpp"
+
+
+#define DEFAULT_METHODS(x)              \
+  ~x() = default;                       \
+  x(const x &) = default;               \
+  x(x &&) GLTF_NOEXCEPT = default;      \
+  x &operator=(const x &) = default;    \
+  x &operator=(x &&) GLTF_NOEXCEPT = default;
 
 namespace glTFimporter
 {
@@ -144,22 +153,54 @@ static inline int32_t GetNumOfComponentsInType(uint32_t typeToCheck)
         case GLTF_TYPE_SCALAR:  return 1; break;
         case GLTF_TYPE_VEC2:    return 2; break;
         case GLTF_TYPE_VEC3:    return 3; break;
-        default:                                    return -1; break;                           
+        case GLTF_TYPE_VEC4:    return 4; break;
+        case GLTF_TYPE_MAT2:    return 4; break;
+        case GLTF_TYPE_MAT3:    return 9; break;
+        case GLTF_TYPE_MAT4:    return 16; break;
+        default:                return -1; break;                           
     }
 }
 
-    class scene
-    {
-        std::string name;
-    };
+//Move these fokken functions to glTFImporter class when done
+bool IsDataURI(const std::string &in);
+bool DecodeDataURI(std::vector<unsigned char> *out, std::string &mime_type, const std::string &in, size_t reqBytes, bool checkSize);
 
-    class glTFImporter
-    {
 
-    public:
-        glTFImporter();
+class Value
+{
 
-    };
+public:
+    typedef std::vector<Value> Array;
+    typedef std::map<std::string, Value> Object;
+
+    Value() 
+        : type_(NULL_TYPE), 
+          int_value_(0), 
+          real_value_(0.0), 
+          bool_value_(false) {}
+    
+    explicit Value(bool b) : type_(BOOL_TYPE) {bool_value_ = b;}
+    explicit Value(int i) : type_(INT_TYPE) {int_value_ = i; real_value_ = i;}
+    explicit Value(double n) : type_(REAL_TYPE) {real_value_ = n;}
+    explicit Value(const std::string &s) : type_(STRING_TYPE) {string_value_ = s;}
+    explicit Value(std::string &&s) : type_(STRING_TYPE), string_value_(std::move(s)){}
+    explicit Value();
+    explicit Value();
+    explicit Value();
+    explicit Value();
+    explicit Value();
+    explicit Value();
+
+protected:
+    int type_ = NULL_TYPE;
+    int int_value_ = 0;
+    double real_value_ = 0;
+    std::string string_value_ = "";
+    std::vector<unsigned char> binary_value_;
+    Array array_value_;
+    Object object_value_;
+    bool bool_value_
+};
 
 }
 
