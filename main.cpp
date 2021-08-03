@@ -11,7 +11,6 @@
 #include "line.h"
 #include "breeze_timer.h"
 #include "breeze_utilities.h"
-#include "model.h"
 
 #include <iostream>
 #include <ctime>
@@ -208,8 +207,6 @@ int main(int argc, char *argv[])
 	int logoChannels = 0;
 	zipper.unZip(unzippedLogo, unzippedLogoSize, ENGINE_DEFAULTS_PATH, "BreezeLogo.png");
 
-	std::string fucksake = "D:\\Github\\Breeze\\bruhCube.obj";
-	Model bruh(fucksake);
 
 	float cube[] = {
     // positions          // normals           // texture coords
@@ -439,9 +436,6 @@ int main(int argc, char *argv[])
 		defaultShader.setMat4("projection", projection);
 		defaultShader.setMat4("view", view);
 
-
-
-
 		glBindVertexArray(cubeVAO);
 		for (unsigned int i = 0; i < 10; i++)
 		{
@@ -453,7 +447,6 @@ int main(int argc, char *argv[])
 
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
-		
 		
 
 		pointLightShader.use();
@@ -467,7 +460,6 @@ int main(int argc, char *argv[])
 		glBindVertexArray(lightVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-		bruh.Draw(defaultShader);
 
 
 
@@ -592,6 +584,7 @@ void key_callback(SDL_Window* window, int key, int scancode, int action, int mod
 		mainCam.cameraFOV = 90;
 	
 }
+
 
 void mouse_callback(SDL_Window* window, double xpos, double ypos)
 {
