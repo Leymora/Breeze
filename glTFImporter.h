@@ -878,5 +878,23 @@ protected:
         bool operator==(const Model &) const;
     };
 
-    //https://github.com/syoyo/tinygltf/blob/master/tiny_gltf.h  Rad 922
+    enum SectionCheck
+    {
+        NO_REQUIRE = 0x00,
+        REQUIRE_VERSION = 0x01,
+        REQUIRE_SCENE = 0x02,
+        REQUIRE_SCENES = 0x04,
+        REQUIRE_NODES = 0x08,
+        REQUIRE_ACCESSORS = 0x10,
+        REQUIRE_BUFFERS = 0x20,
+        REQUIRE_BUFFER_VIEWS = 0x40,
+        REQUIRE_ALL = 0x7f
+    };
+
+    bool FileExists(const std::string &abs_filename, void *);
+    std::string ExpandFilePath(const std::string &filepath, void *userData);
+    bool ReadWholeFile(std::vector<unsigned char> *out, std::string *err, const std::string &filepath, void *);
+    bool WriteWholeFile(std::string *err, const std::string &filepath, const std::vector<unsigned char> &contents, void *);
+
+    //https://github.com/syoyo/tinygltf/blob/master/tiny_gltf.h  Rad 1279
 }
