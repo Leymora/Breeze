@@ -1,6 +1,1 @@
-#include "glTFImporter.h"
-
-glTFImporter::glTFImporter()
-{
-
-}
+#define bruh true

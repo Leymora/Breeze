@@ -2,7 +2,7 @@
 // glTF is really amazing but holy shit it makes zero sense to me as I'm writing this.
 // Big thanks to Syoyo for their tinygltfl code that I studied and sometimes (a lot of times) straight up 
 // copied in order for this shit to work. Check out their work: https://github.com/syoyo/tinygltf
-// As well as KhronosGroup's glTF 2.0 specifications github: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0
+// As well as KhronosGroup's glTF 2.0 specifications github: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#properties-reference
 
 #pragma once
 #include <cassert>
@@ -661,7 +661,222 @@ protected:
 
         Accessor() : bufferView(-1), byteOffset(0), normalized(false), componentType(-1), count(0), type(-1) { sparse.isSparse = false; }
         DEFAULT_METHODS(Accessor)
-        bool operator==(const glTFimp::Accessor &) const;
+        bool operator==(const Accessor &) const;
     };
+
+    struct PerspectiveCamera
+    {
+        double aspectRatio;
+        double fov;         //yFov
+        double clipStart;   //zNear
+        double clipEnd;     //zFar
+
+        Value extras;
+        ExtensionMap extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        PerspectiveCamera() : aspectRatio(0.0), fov(0.0), clipStart(0.0), clipEnd(0.0) { }
+        DEFAULT_METHODS(PerspectiveCamera)
+        bool operator==(const PerspectiveCamera &) const;
+    };
+
+    struct OrthographicCamera
+    {
+        double xMag;
+        double yMag;
+        double clipStart;   //zNear
+        double clipEnd;     //zFar
+
+        Value extras;
+        ExtensionMap extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        OrthographicCamera() : xMag(0.0), yMag(0.0), clipStart(0.0), clipEnd(0.0) { }
+        DEFAULT_METHODS(OrthographicCamera)
+        bool operator==(const OrthographicCamera &) const;
+    };
+
+    struct Camera
+    {
+        std::string name;
+        std::string type; //Perspective or Orthographic
+
+        PerspectiveCamera perspective;
+        OrthographicCamera orthographic;   
+
+        Value extras;
+        ExtensionMap extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        Camera() { }
+        DEFAULT_METHODS(Camera)
+        bool operator==(const Camera &) const;
+    };
+
+    struct Primitive
+    {
+        std::map<std::string, int> attributes;
+        int material;
+        int indices;
+        int mode;
+        std::vector< std::map<std::string, int> > targets;
+        
+        Value extras;
+        ExtensionMap extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        Primitive()
+        {
+            material    =   -1;
+            indices     =   -1;
+            mode        =   -1;
+        }
+        DEFAULT_METHODS(Primitive)
+        bool operator==(const Primitive &) const;
+    };
+
+    struct Mesh
+    {
+        std::string name;
+        std::vector<Primitive> primitives;
+        std::vector<double> weights;
+        
+        Value extras;
+        ExtensionMap extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        Mesh() = default;
+        DEFAULT_METHODS(Mesh)
+        bool operator==(const Mesh &) const;
+    };
+
+    struct Node
+    {
+        std::string name;
+        int camera;
+        int skin;
+        int mesh;
+        std::vector<int> children;
+        std::vector<double> rotation;
+        std::vector<double> scale;
+        std::vector<double> translation;
+        std::vector<double> matrix;
+        std::vector<double> weights;
+                
+        Value extras;
+        ExtensionMap extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        Node() : camera(-1), skin(-1), mesh(-1) { }
+        DEFAULT_METHODS(Node)
+        bool operator==(const Node &) const;
+    };
+
+    struct Buffer
+    {
+        std::string name;
+        std::vector<unsigned char> data;
+        std::string uri;
+                        
+        Value extras;
+        ExtensionMap extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        Buffer() = default;
+        DEFAULT_METHODS(Buffer)
+        bool operator==(const Buffer &) const;
+    };
+
+    struct Asset
+    {
+        std::string version = "2.0";
+        std::string generator;
+        std::string minVersion;
+        std::string copyright;
+                        
+        Value extras;
+        ExtensionMap extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        Asset() = default;
+        DEFAULT_METHODS(Asset)
+        bool operator==(const Asset &) const;
+    };
+
+    struct Scene
+    {
+        std::string name;
+        std::vector<int> nodes;
+                                
+        Value extras;
+        ExtensionMap extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        Scene() = default;
+        DEFAULT_METHODS(Scene)
+        bool operator==(const Scene &) const;
+    };
+
+    class Model
+    {
+    public:
+        std::vector<Accessor> accessors;
+        std::vector<Animation> animations;
+        std::vector<Buffer> buffers;
+        std::vector<BufferView> bufferViews;
+        std::vector<Material> materials;
+        std::vector<Mesh> meshes;
+        std::vector<Node> nodes;
+        std::vector<Texture> textures;
+        std::vector<Image> images;
+        std::vector<Skin> skins;
+        std::vector<Sampler> samplers;
+        std::vector<Camera> cameras;
+        std::vector<Scene> scenes;
+
+        int defaultScene = -1;
+        std::vector<std::string> extensionsUsed;
+        std::vector<std::string> extensionsRequired;
+        Asset asset;
+                                
+        Value extras;
+        ExtensionMap extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        Model() = default;
+        DEFAULT_METHODS(Model)
+        bool operator==(const Model &) const;
+    };
+
     //https://github.com/syoyo/tinygltf/blob/master/tiny_gltf.h  Rad 922
 }
