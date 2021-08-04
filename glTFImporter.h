@@ -473,6 +473,195 @@ protected:
         bool operator==(const Texture &) const;
     };
 
+    struct TextureInfo
+    {
+        int index;
+        int texCoord;
+                                
+        Value extras;
+        ExtensionMap extensions;
 
-    //https://github.com/syoyo/tinygltf/blob/master/tiny_gltf.h  Rad 417
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        TextureInfo() : index(-1), texCoord(0) { }
+        DEFAULT_METHODS(TextureInfo)
+        bool operator==(const TextureInfo &) const;
+    };
+
+    struct NormalTextureInfo
+    {
+        int index;
+        int texCoord;
+        double scale;
+                                
+        Value extras;
+        ExtensionMap extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        NormalTextureInfo() : index(-1), texCoord(0), scale(1.0) { }
+        DEFAULT_METHODS(NormalTextureInfo)
+        bool operator==(const NormalTextureInfo &) const;
+    };
+
+    struct OcclusionTextureInfo
+    {
+        int index;
+        int texCoord;
+        double strength;
+                                
+        Value extras;
+        ExtensionMap extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        OcclusionTextureInfo() : index(-1), texCoord(0), strength(1.0) { }
+        DEFAULT_METHODS(OcclusionTextureInfo)
+        bool operator==(const OcclusionTextureInfo &) const;
+    };
+
+    struct PBR_MetallicRoughness
+    {
+        std::vector<double> baseColorValue;
+        TextureInfo baseColorTexture;
+        double metallicValue;
+        double roughnessValue;
+        TextureInfo metallicRoughnessTexture;
+                                        
+        Value extras;
+        ExtensionMap extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        PBR_MetallicRoughness() : baseColorValue(std::vector<double>{1.0, 1.0, 1.0, 1.0}), metallicValue(1.0), roughnessValue(1.0) { }
+        DEFAULT_METHODS(PBR_MetallicRoughness)
+        bool operator==(const PBR_MetallicRoughness &) const;
+    };
+
+    struct Material
+    {
+        std::string name;
+        std::vector<double> emissiveValue;
+        std::string alphaMode;
+        double alphaCutoff;
+        bool doubleSided;
+
+        PBR_MetallicRoughness pbrMetallicRoughness;
+        NormalTextureInfo normalTexture;
+        OcclusionTextureInfo occlusionTexture;
+        TextureInfo emissiveTexture;
+                                                
+        Value extras;
+        ExtensionMap extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        Material() : alphaMode("OPAQUE"), alphaCutoff(0.5), doubleSided(false) { }
+        DEFAULT_METHODS(Material)
+        bool operator==(const Material &) const;
+    };
+
+    struct BufferView
+    {
+        std::string name;
+        int buffer;
+        size_t byteOffset;
+        size_t byteLength;
+        size_t byteStride;
+        int target;
+        bool dracoDecoded;
+
+        Value extras;
+        ExtensionMap extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        BufferView() : buffer(-1), byteOffset(0), byteLength(0), byteStride(0), target(0), dracoDecoded(false) { }
+        DEFAULT_METHODS(BufferView)
+        bool operator==(const BufferView &) const;
+    };
+
+    struct Accessor
+    {
+        std::string name;
+        int bufferView;
+        size_t byteOffset;
+        size_t count;
+        bool normalized;
+        int componentType;
+        int type;
+
+        Value extras;
+        ExtensionMap extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        std::vector<double> minValues;
+        std::vector<double> maxValues;
+
+        struct
+        {
+            int scount;
+            bool isSparse;
+
+            struct
+            { 
+                int byteOffset;
+                int bufferView;
+                int componentType;
+            } indices;
+            struct
+            {
+                int bufferView;
+                int byteOffset;
+            } values;
+        } sparse;
+
+        int CalculateByteStride(const BufferView &bufferViewObject) const
+        {
+            if (bufferViewObject.byteStride == 0)
+            {
+                int componentSizeInBytes = GetComponentSizeInBytes(static_cast<uint32_t>(componentType));
+                if (componentSizeInBytes <= 0)
+                    return -1;
+            
+            
+                int numOfComponents = GetNumOfComponentsInType(static_cast<uint32_t>(type));
+                if (numOfComponents <= 0)
+                    return -1;
+
+                return componentSizeInBytes * numOfComponents;
+            }
+            else
+            {
+                int componentSizeInBytes = GetComponentSizeInBytes(static_cast<uint32_t>(componentType));
+                if (componentSizeInBytes <= 0)
+                    return -1;
+
+                if ((bufferViewObject.byteStride % uint32_t(componentSizeInBytes)) != 0)
+                    return -1;
+                
+                return static_cast<int>(bufferViewObject.byteStride);
+            }
+        }
+
+        Accessor() : bufferView(-1), byteOffset(0), normalized(false), componentType(-1), count(0), type(-1) { sparse.isSparse = false; }
+        DEFAULT_METHODS(Accessor)
+        bool operator==(const glTFimp::Accessor &) const;
+    };
+    //https://github.com/syoyo/tinygltf/blob/master/tiny_gltf.h  Rad 922
 }
