@@ -1,7 +1,9 @@
 
 // glTF is really amazing but holy shit it makes zero sense to me as I'm writing this.
-// Big thanks to Syoyo for their tinygltfloader that I studied and sometimes straight up copied in order
-// for this shit to work. Check out their work: https://github.com/syoyo/tinygltf
+// Big thanks to Syoyo for their tinygltfl code that I studied and sometimes (a lot of times) straight up 
+// copied in order for this shit to work. Check out their work: https://github.com/syoyo/tinygltf
+// As well as KhronosGroup's glTF 2.0 specifications github: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0
+
 #pragma once
 #include <cassert>
 #include <map>
@@ -117,7 +119,6 @@ namespace glTFimp
 
 #define GLTF_DOUBLE_EPS     (1.e-12)
 #define GLTF_DOUBLE_EQUAL   (a, b) (std::fabs((b) - (a) < GLTF_DOUBLE_EPS))
-
 
 
 typedef enum
@@ -300,7 +301,178 @@ protected:
     inline ctype &Value::Get<ctype>()               \
     {                                               \
         return var;                                 \
-    }                                               \
+    }                                               
     GLTF_VALUE_GET(bool, bool_value_);
+    GLTF_VALUE_GET(double, real_value_);
+    GLTF_VALUE_GET(int, int_value_);
+    GLTF_VALUE_GET(std::string, string_value_);
+    GLTF_VALUE_GET(std::vector<unsigned char>, binary_value_);
+    GLTF_VALUE_GET(Value::Array, array_value_);
+    GLTF_VALUE_GET(Value::Object, object_value_);
+
+
+    //Object for respresenting a color
+    using ColorValue = std::array<double, 4>;
+
+    //Skipping paremeters class here#######
+    //#####################################
+
+    typedef std::map<std::string, Value> ExtensionMap;
+
+    struct AnimationChannel
+    {
+        int sampler;
+        int target_node;
+        std::string target_path;
+
+        Value extras;
+        ExtensionMap extensions;
+        ExtensionMap target_extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+        std::string target_extensions_json_string;
+
+        AnimationChannel() : sampler(-1), target_node(-1) { }
+        DEFAULT_METHODS(AnimationChannel)
+        bool operator==(const AnimationChannel &) const;
+    };
+
+    struct AnimationSampler
+    {
+        int input;
+        int output;
+        std::string interpolation;
+
+        Value extras;
+        ExtensionMap extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        AnimationSampler() : input(-1), output(-1), interpolation("LINEAR") { }
+        DEFAULT_METHODS(AnimationSampler)
+        bool operator==(const AnimationSampler &) const;
+    };
+
+    struct Animation
+    {
+        std::string name;
+        std::vector<AnimationChannel> channels;
+        std::vector<AnimationSampler> samples;
+
+        Value extras;
+        ExtensionMap extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        Animation() = default;
+        DEFAULT_METHODS(Animation)
+        bool operator==(const Animation &) const;
+    };
+
+    struct Skin
+    {
+        std::string name;
+        int inverseBindMatrices;
+        int skeleton;
+        std::vector<int> joints;
+
+        Value extras;
+        ExtensionMap extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        Skin()
+        {
+            inverseBindMatrices = -1;
+            skeleton = -1;
+        }
+        DEFAULT_METHODS(Skin)
+        bool operator==(const Skin &) const;
+    };
+
+    struct Sampler
+    {
+        std::string name;
+        int magFilter;
+        int minFilter;
+        int wrapS;
+        int wrapT;
+        
+        Value extras;
+        ExtensionMap extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        Sampler() : magFilter(-1), minFilter(-1), wrapS(GLTF_TEXTURE_WRAP_REPEAT), wrapT(GLTF_TEXTURE_WRAP_REPEAT) { }
+        DEFAULT_METHODS(Sampler)
+        bool operator==(const Sampler &) const;
+
+    };
+
+    struct Image
+    {
+        std::string name;
+        int width;
+        int height;
+        int component;
+        int bits;
+        int pixelType;
+        
+        std::vector<unsigned char> image;
+        int bufferView;
+        std::string mimeType; //Can only be jpeg or png
+        std::string uri;
+                
+        Value extras;
+        ExtensionMap extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        bool as_is;
+
+        Image() : as_is(false)
+        {
+            bufferView = -1;
+            width = -1;
+            height = -1;
+            component = -1;
+            bits = -1;
+            pixelType = -1;
+        }
+        DEFAULT_METHODS(Image)
+        bool operator==(const Image &) const;
+    };
+
+    struct Texture
+    {
+        std::string name;
+        int sampler;
+        int source;
+                        
+        Value extras;
+        ExtensionMap extensions;
+
+        //If SetStoreOriginalJSONForExtrasAndExtensions is enabled
+        std::string extras_json_string;
+        std::string extensions_json_string;
+
+        Texture() : sampler(-1), source(-1) { }
+        DEFAULT_METHODS(Texture)
+        bool operator==(const Texture &) const;
+    };
+
+
     //https://github.com/syoyo/tinygltf/blob/master/tiny_gltf.h  Rad 417
 }
