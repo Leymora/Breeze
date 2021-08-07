@@ -1,9 +1,6 @@
 #include "zipManager.h"
 
-zipManager::zipManager()
-{
-
-}
+zipManager::zipManager() { }
 
 void zipManager::unZip(unsigned char*& contents, int& stSize, std::string zipFile, std::string file)
 {
@@ -24,6 +21,5 @@ void zipManager::unZip(unsigned char*& contents, int& stSize, std::string zipFil
 		zip_fclose(f);
 		zip_close(z);
 	}
-
 	stSize = st.size;
 }

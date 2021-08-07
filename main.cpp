@@ -1,17 +1,7 @@
 #include <glad/glad.h>
 #include <SDL/SDL.h>
 
-#include "consts.h"
-#include "engineSettings.h"
-#include "shader.h"
-#include "camera.h"
-#include "zipManager.h"
-#include "textRenderer.h"
 #include "stb_image.h"
-#include "line.h"
-#include "breeze_timer.h"
-#include "breeze_utilities.h"
-
 #include <iostream>
 #include <ctime>
 #include <filesystem>
@@ -25,6 +15,17 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+//Breeze Engine Includes
+#include "engineSettings.h"
+#include "zipManager.h"
+#include "textRenderer.h"
+#include "line.h"
+#include "consts.h"
+#include "shader.h"
+#include "camera.h"
+#include "breeze_timer.h"
+#include "breeze_utilities.h"
 
 
 //Prototypes
@@ -42,6 +43,12 @@ void mouse_callback(SDL_Window* window, double xpos, double ypos);
 void scroll_callback(SDL_Window* window, double xoffset, double yoffset);
 
 void checkArgs(int range, char* args[]); //Probably really unoptimized but shut up pls ( It only happens once at startup so it's fine >:c )
+
+void setBuildNumber();
+
+bool checkEngineResources();
+
+bool SDL_IntializeAndCreateWindow(SDL_Window* window);
 
 void getFPS();
 
@@ -91,8 +98,12 @@ textRenderer txtRndr;
 
 Coordinate_System CoordSys = Coordinate_System::BREEZE_ENGINE;
 
+SDL_Window* window;
+
 int main(int argc, char *argv[])
 {
+	//Check for memory leaks
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
 	//Check Command Line Arguments
 	if (argc >= 2 && hasCheckedArgs == false)
@@ -101,99 +112,14 @@ int main(int argc, char *argv[])
 			checkArgs(i, argv);
 	}
 
-	int timeDay = ltm.tm_mday;
-	int timeMonth = 1 + ltm.tm_mon;
-	int timeYear = ltm.tm_year - 100;
-
-	buildNumber.append(std::to_string(timeDay) + "-");
-	buildNumber.append(std::to_string(timeMonth) + "-");
-	buildNumber.append(std::to_string(timeYear));
-
-	if (!std::filesystem::exists(APP_DATA_PATH))
-		std::filesystem::create_directories(APP_DATA_PATH);
-	
-	if (!std::filesystem::exists(ENGINE_DEFAULTS_PATH))
-	{
-		std::cout << "ERROR! Missing Engine Defaults!\n\nFile: " << APP_DATA_PATH <<  "engineDefaults.bpf\nThis is a required file for Breeze Engine to run\n" << std::endl;
+	//Engine Startup
+	setBuildNumber();
+	if (!checkEngineResources()) //If one or more files in AppData/Roaming/BreezeEngine are not found then exit the engine
 		return 69;
-	}
-	if (!std::filesystem::exists(CURRENT_PATH + "shaders\\default_vertex.glsl"))
-	{
-		std::cout << "ERROR! Missing File: " << CURRENT_PATH + "shaders\\default_vertex.glsl" << "\nA new file has been generated. Please close and start Breeze Engine again\n" << std::endl;
 		
-		unsigned char* unzippedShader = 0;
-		int unzippedShaderSize = 0;
-		zipper.unZip(unzippedShader, unzippedShaderSize, ENGINE_DEFAULTS_PATH, "default_vertex.glsl");
-
-		std::ofstream ofs(CURRENT_PATH + "shaders\\default_vertex.glsl");
-		ofs.write(reinterpret_cast<const char*>(unzippedShader), unzippedShaderSize);
-		ofs.close();
-		return 69;
-	}
-	if (!std::filesystem::exists(CURRENT_PATH + "shaders\\default_fragment.glsl"))
-	{
-		std::cout << "ERROR! Missing File: " << CURRENT_PATH + "shaders\\default_fragment.glsl" << "\nA new file has been generated. Please close and start Breeze Engine again\n" << std::endl;
-		
-		unsigned char* unzippedShader = 0;
-		int unzippedShaderSize = 0;
-		zipper.unZip(unzippedShader, unzippedShaderSize, ENGINE_DEFAULTS_PATH, "default_fragment.glsl");
-
-		std::ofstream ofs(CURRENT_PATH + "shaders\\default_fragment.glsl");
-		ofs.write(reinterpret_cast<const char*>(unzippedShader), unzippedShaderSize);
-		ofs.close();
-		return 69;
-	}
-
-	if (!std::filesystem::exists(CURRENT_PATH + "shaders\\text_vertex.glsl"))
-	{
-		std::cout << "ERROR! Missing File: " << CURRENT_PATH + "shaders\\text_vertex.glsl" << "\nA new file has been generated. Please close and start Breeze Engine again\n" << std::endl;
-		
-		unsigned char* unzippedShader = 0;
-		int unzippedShaderSize = 0;
-		zipper.unZip(unzippedShader, unzippedShaderSize, ENGINE_DEFAULTS_PATH, "text_vertex.glsl");
-
-		std::ofstream ofs(CURRENT_PATH + "shaders\\text_vertex.glsl");
-		ofs.write(reinterpret_cast<const char*>(unzippedShader), unzippedShaderSize);
-		ofs.close();
-		return 69;
-	}
-	if (!std::filesystem::exists(CURRENT_PATH + "shaders\\text_fragment.glsl"))
-	{
-		std::cout << "ERROR! Missing File: " << CURRENT_PATH + "shaders\\text_fragment.glsl" << "\nA new file has been generated. Please close and start Breeze Engine again\n" << std::endl;
-		
-		unsigned char* unzippedShader = 0;
-		int unzippedShaderSize = 0;
-		zipper.unZip(unzippedShader, unzippedShaderSize, ENGINE_DEFAULTS_PATH, "text_fragment.glsl");
-
-		std::ofstream ofs(CURRENT_PATH + "shaders\\text_fragment.glsl");
-		ofs.write(reinterpret_cast<const char*>(unzippedShader), unzippedShaderSize);
-		ofs.close();
-		return 69;
-	}
-
-
-	SDL_Init(SDL_INIT_VIDEO);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-
-	SDL_Window* window = SDL_CreateWindow("Breeze Engine",SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL);
-	if (window == NULL)
-	{
-		std::cout << "Ya dun fucked up lmao. SDL2 failed to create window" << std::endl;
-		SDL_Quit();
+	if(!SDL_IntializeAndCreateWindow(window))
 		return -1;
-	}
-	SDL_GL_CreateContext(window);
-	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-	SDL_SetRelativeMouseMode(SDL_TRUE);
-	SDL_GL_SetSwapInterval(IS_V_SYNC_ENABLED);
 
-	if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
-	{
-		std::cout << "ERROR! Failed to initialize GLAD" << std::endl;
-		return -1;
-	}
 
 	//Shader defaultShader((CURRENT_PATH + "shaders/default_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/default_fragment.glsl").c_str());
 	Shader breathingShader((CURRENT_PATH + "shaders/default_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/breathing_fragment.glsl").c_str());
@@ -628,6 +554,121 @@ void checkArgs(int range, char* args[])
 		IS_V_SYNC_ENABLED = SDL_TRUE; return;
 	}
 }
+
+void setBuildNumber()
+{
+	int timeDay = ltm.tm_mday;
+	int timeMonth = 1 + ltm.tm_mon;
+	int timeYear = ltm.tm_year - 100;
+
+	buildNumber.append(std::to_string(timeDay) + "-");
+	buildNumber.append(std::to_string(timeMonth) + "-");
+	buildNumber.append(std::to_string(timeYear));
+}
+
+bool checkEngineResources()
+{
+	unsigned char* unzippedShader = 0;
+	int unzippedShaderSize = 0;
+	bool isResourcesFound = true;
+
+	if (!std::filesystem::exists(APP_DATA_PATH))
+		std::filesystem::create_directories(APP_DATA_PATH);
+	
+	if (!std::filesystem::exists(ENGINE_DEFAULTS_PATH))
+	{
+		std::cout << "ERROR! Missing Engine Defaults!\n\nFile: " << APP_DATA_PATH <<  "engineDefaults.bpf\nThis is a required file for Breeze Engine to run\n" << std::endl;
+		isResourcesFound = false;
+	}
+	if (!std::filesystem::exists(CURRENT_PATH + "shaders\\default_vertex.glsl"))
+	{
+		std::cout << "ERROR! Missing File: " << CURRENT_PATH + "shaders\\default_vertex.glsl" << "\nA new file has been generated. Please close and start Breeze Engine again\n" << std::endl;
+		
+		unzippedShader = 0;
+		unzippedShaderSize = 0;
+		zipper.unZip(unzippedShader, unzippedShaderSize, ENGINE_DEFAULTS_PATH, "default_vertex.glsl");
+
+		std::ofstream ofs(CURRENT_PATH + "shaders\\default_vertex.glsl");
+		ofs.write(reinterpret_cast<const char*>(unzippedShader), unzippedShaderSize);
+		ofs.close();
+		isResourcesFound = false;
+	}
+	if (!std::filesystem::exists(CURRENT_PATH + "shaders\\default_fragment.glsl"))
+	{
+		std::cout << "ERROR! Missing File: " << CURRENT_PATH + "shaders\\default_fragment.glsl" << "\nA new file has been generated. Please close and start Breeze Engine again\n" << std::endl;
+		
+		unzippedShader = 0;
+		unzippedShaderSize = 0;
+		zipper.unZip(unzippedShader, unzippedShaderSize, ENGINE_DEFAULTS_PATH, "default_fragment.glsl");
+
+		std::ofstream ofs(CURRENT_PATH + "shaders\\default_fragment.glsl");
+		ofs.write(reinterpret_cast<const char*>(unzippedShader), unzippedShaderSize);
+		ofs.close();
+		isResourcesFound = false;
+	}
+	if (!std::filesystem::exists(CURRENT_PATH + "shaders\\text_vertex.glsl"))
+	{
+		std::cout << "ERROR! Missing File: " << CURRENT_PATH + "shaders\\text_vertex.glsl" << "\nA new file has been generated. Please close and start Breeze Engine again\n" << std::endl;
+		
+		unzippedShader = 0;
+		unzippedShaderSize = 0;
+		zipper.unZip(unzippedShader, unzippedShaderSize, ENGINE_DEFAULTS_PATH, "text_vertex.glsl");
+
+		std::ofstream ofs(CURRENT_PATH + "shaders\\text_vertex.glsl");
+		ofs.write(reinterpret_cast<const char*>(unzippedShader), unzippedShaderSize);
+		ofs.close();
+		isResourcesFound = false;
+	}
+	if (!std::filesystem::exists(CURRENT_PATH + "shaders\\text_fragment.glsl"))
+	{
+		std::cout << "ERROR! Missing File: " << CURRENT_PATH + "shaders\\text_fragment.glsl" << "\nA new file has been generated. Please close and start Breeze Engine again\n" << std::endl;
+		
+		unzippedShader = 0;
+		unzippedShaderSize = 0;
+		zipper.unZip(unzippedShader, unzippedShaderSize, ENGINE_DEFAULTS_PATH, "text_fragment.glsl");
+
+		std::ofstream ofs(CURRENT_PATH + "shaders\\text_fragment.glsl");
+		ofs.write(reinterpret_cast<const char*>(unzippedShader), unzippedShaderSize);
+		ofs.close();
+		isResourcesFound = false;
+	}
+
+	return isResourcesFound;
+}
+
+bool SDL_IntializeAndCreateWindow(SDL_Window* window)
+{
+	bool didNotFail = true;
+	SDL_Init(SDL_INIT_VIDEO);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+
+	window = SDL_CreateWindow("Breeze Engine",SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL);
+	if (window == NULL)
+	{
+		std::cout << "Ya dun fucked up lmao. SDL2 failed to create window" << std::endl;
+		SDL_Quit();
+		didNotFail = false;
+	}
+	SDL_GL_CreateContext(window);
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+	SDL_SetRelativeMouseMode(SDL_TRUE);
+	SDL_GL_SetSwapInterval(IS_V_SYNC_ENABLED);
+
+	if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
+	{
+		std::cout << "ERROR! Failed to initialize GLAD" << std::endl;
+		didNotFail = false;
+	}
+
+	return didNotFail;
+}
+
+
+
+
+
 
 void getFPS()
 {

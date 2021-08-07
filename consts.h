@@ -15,7 +15,6 @@ const std::string CURRENT_PATH = std::filesystem::current_path().string() += "\\
 
 const glm::dvec3 COL_BREEZE_DARK (46.0f/255.0f, 29.0f/255.0f, 34.0f/255.0f);
 const glm::dvec3 COL_BREEZE_SKY_GREEN (111.0f/255.0f, 242.0f/255.0f, 149.0f/255.0f);
-
 const glm::dvec3 COL_BREEZE_SKY (167.0f/255.0f, 207.0f/255.0f, 223.0f/255.0f);
 
 const glm::dvec3 COL_X_AXIS (151.0f/255.0f, 59.0f/255.0f, 59.0f/255.0f);
