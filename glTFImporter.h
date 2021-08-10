@@ -896,5 +896,36 @@ protected:
     bool ReadWholeFile(std::vector<unsigned char> *out, std::string *err, const std::string &filepath, void *);
     bool WriteWholeFile(std::string *err, const std::string &filepath, const std::vector<unsigned char> &contents, void *);
 
-    //https://github.com/syoyo/tinygltf/blob/master/tiny_gltf.h  Rad 1279
-}
+
+    class glTFImporter
+    {
+    public:
+
+        glTFImporter() : bin_data_(nullptr), bin_size_(0), is_binary_(false) { }
+        ~glTFImporter() { }
+
+        const unsigned char* bin_data_ = nullptr;
+        size_t bin_size_ = 0;
+        bool is_binary_ = false;
+
+        bool serialize_default_values_ = false;
+        bool store_original_json_ = false;
+        bool preserve_image_channels_ = false;
+
+        bool LoadASCIIFromFile(Model *model, std::string *err, std::string *warn, const std::string &filename, unsigned int check_sections = REQUIRE_VERSION);
+        bool LoadASCIIFromString(Model *model, std::string *err, std::string *warn, const char* str, const unsigned int length, const std::string &base_dir, unsigned int check_sections = REQUIRE_VERSION);
+
+        bool LoadBinaryFromFile(Model *model, std::string *err, std::string *warn, const std::string &filename, unsigned int check_sections = REQUIRE_VERSION);
+        bool LoadBinaryFromMemory(Model *model, std::string *err, std::string *warn, const unsigned char* bytes, const unsigned int length, const std::string &base_dir = "", unsigned int check_sections = REQUIRE_VERSION);
+    
+    private:
+        bool LoadFromString(Model *model, std::string *err, std::string *warn, const char *str, const unsigned int length, const std::string &base_dir, unsigned int check_sections);
+        
+    
+    };
+
+
+
+} //Kinda done? I don't fucking know.
+
+//https://github.com/syoyo/tinygltf/blob/master/tiny_gltf.h  Rad 1467
