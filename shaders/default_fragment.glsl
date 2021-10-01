@@ -1,8 +1,11 @@
 #version 460 core
 struct Material
 {
-    sampler2D diffuse;
-    sampler2D specular;
+    sampler2D texture_diffuse1;
+    sampler2D texture_diffuse2;
+    sampler2D texture_diffuse3;
+    sampler2D texture_specular1;
+    sampler2D texture_specular2;
     float shininess;
 };
 uniform Material material;
@@ -18,6 +21,7 @@ struct Light
     float linear;
     float quadratic;
 };
+
 uniform Light light;
 
 out vec4 FragColor;
@@ -51,9 +55,9 @@ void main()
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
 
 
-    vec3 ambient = light.ambient * vec3(texture(material.diffuse, TexCoords));
-    vec3 diffuse = light.diffuse * diff * vec3(texture(material.diffuse, TexCoords));
-    vec3 specular = light.specular * spec * vec3(texture(material.specular, TexCoords));
+    vec3 ambient = light.ambient * vec3(texture(material.texture_diffuse1, TexCoords));
+    vec3 diffuse = light.diffuse * diff * vec3(texture(material.texture_diffuse1, TexCoords));
+    vec3 specular = light.specular * spec * vec3(texture(material.texture_specular1, TexCoords));
 
     ambient *= attenuation;
     diffuse *= attenuation;
