@@ -36,11 +36,11 @@ void processFrameInput(float deltaTime);
 
 void processInput();
 
-void key_callback(SDL_Window* window, int key, int scancode, int action, int mods);
+void key_callback(int key, int scancode, int action, int mods);
 
-void mouse_callback(SDL_Window* window, double xpos, double ypos);
+void mouse_callback(double xpos, double ypos);
 
-void scroll_callback(SDL_Window* window, double xoffset, double yoffset);
+void scroll_callback(double xoffset, double yoffset);
 
 void checkArgs(int range, char* args[]); //Probably really unoptimized but shut up pls ( It only happens once at startup so it's fine >:c )
 
@@ -48,7 +48,7 @@ void setBuildNumber();
 
 bool checkEngineResources();
 
-bool SDL_IntializeAndCreateWindow(SDL_Window* window);
+bool SDL_IntializeAndCreateWindow();
 
 void getFPS();
 
@@ -98,7 +98,7 @@ textRenderer txtRndr;
 
 Coordinate_System CoordSys = Coordinate_System::BREEZE_ENGINE;
 
-SDL_Window* window;
+SDL_Window* window = nullptr;
 
 int main(int argc, char *argv[])
 {
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
 	if (!checkEngineResources()) //If one or more files in AppData/Roaming/BreezeEngine are not found then exit the engine
 		return 69;
 		
-	if(!SDL_IntializeAndCreateWindow(window))
+	if(!SDL_IntializeAndCreateWindow())
 		return -1;
 
 
@@ -482,6 +482,7 @@ void processInput()
 			switch(e.key.keysym.sym)
 			{
 				case SDLK_ESCAPE: std::cout << "Ass" << std::endl; mainWindowRun = false; break;
+				case SDLK_f: toggleWireframeMode(); break;
 				default: break;
 			}
 		}
@@ -502,7 +503,7 @@ void processInput()
 	
 }
 
-void key_callback(SDL_Window* window, int key, int scancode, int action, int mods)
+void key_callback(int key, int scancode, int action, int mods)
 {
 	if (key == GLFW_KEY_F && action == GLFW_PRESS)
 		toggleWireframeMode();
@@ -512,7 +513,7 @@ void key_callback(SDL_Window* window, int key, int scancode, int action, int mod
 }
 
 
-void mouse_callback(SDL_Window* window, double xpos, double ypos)
+void mouse_callback(double xpos, double ypos)
 {
 	if (firstMouse == true)
 	{
@@ -530,7 +531,7 @@ void mouse_callback(SDL_Window* window, double xpos, double ypos)
 
 }
 
-void scroll_callback(SDL_Window* window, double xoffset, double yoffset)
+void scroll_callback(double xoffset, double yoffset)
 {
 	mainCam.scrollInput(yoffset);
 }
@@ -636,7 +637,7 @@ bool checkEngineResources()
 	return isResourcesFound;
 }
 
-bool SDL_IntializeAndCreateWindow(SDL_Window* window)
+bool SDL_IntializeAndCreateWindow()
 {
 	bool didNotFail = true;
 	SDL_Init(SDL_INIT_VIDEO);

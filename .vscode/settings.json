@@ -71,5 +71,6 @@
         "numeric": "cpp",
         "valarray": "cpp",
         "set": "cpp"
-    }
+    },
+    "cmake.configureOnOpen": false
 }
