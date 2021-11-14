@@ -26,6 +26,7 @@
 #include "camera.h"
 #include "breeze_timer.h"
 #include "breeze_utilities.h"
+#include "ui.h"
 
 
 //Prototypes
@@ -98,7 +99,7 @@ textRenderer txtRndr;
 
 Coordinate_System CoordSys = Coordinate_System::BREEZE_ENGINE;
 
-SDL_Window* window = nullptr;
+SDL_Window* mainSDLwindow = nullptr;
 
 int main(int argc, char *argv[])
 {
@@ -417,7 +418,7 @@ int main(int argc, char *argv[])
 
 		}
 
-		SDL_GL_SwapWindow(window);
+		SDL_GL_SwapWindow(mainSDLwindow);
 
 	}
 	//###############################################################################################################################################################
@@ -481,7 +482,7 @@ void processInput()
 		{
 			switch(e.key.keysym.sym)
 			{
-				case SDLK_ESCAPE: std::cout << "Ass" << std::endl; mainWindowRun = false; break;
+				case SDLK_ESCAPE: std::cout << "Exiting Breeze..." << std::endl; mainWindowRun = false; break;
 				case SDLK_f: toggleWireframeMode(); break;
 				default: break;
 			}
@@ -505,10 +506,10 @@ void processInput()
 
 void key_callback(int key, int scancode, int action, int mods)
 {
-	if (key == GLFW_KEY_F && action == GLFW_PRESS)
-		toggleWireframeMode();
-	if (key == GLFW_KEY_F8 && action == GLFW_PRESS)
-		mainCam.cameraFOV = 90;
+	//if (key == GLFW_KEY_F && action == GLFW_PRESS)
+	//	toggleWireframeMode();
+	//if (key == GLFW_KEY_F8 && action == GLFW_PRESS)
+	//	mainCam.cameraFOV = 90;
 	
 }
 
@@ -645,14 +646,14 @@ bool SDL_IntializeAndCreateWindow()
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
-	window = SDL_CreateWindow("Breeze Engine",SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL);
-	if (window == NULL)
+	mainSDLwindow = SDL_CreateWindow("Breeze Engine",SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL);
+	if (mainSDLwindow == NULL)
 	{
 		std::cout << "Ya dun fucked up lmao. SDL2 failed to create window" << std::endl;
 		SDL_Quit();
 		didNotFail = false;
 	}
-	SDL_GL_CreateContext(window);
+	SDL_GL_CreateContext(mainSDLwindow);
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 	SDL_GL_SetSwapInterval(IS_V_SYNC_ENABLED);

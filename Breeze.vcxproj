@@ -163,6 +163,8 @@
     <ClCompile Include="shader.cpp" />
     <ClCompile Include="stb_image.cpp" />
     <ClCompile Include="textRenderer.cpp" />
+    <ClCompile Include="ui.cpp" />
+    <ClCompile Include="window.cpp" />
     <ClCompile Include="zipManager.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -177,6 +179,8 @@
     <ClInclude Include="shader.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="textRenderer.h" />
+    <ClInclude Include="ui.h" />
+    <ClInclude Include="window.h" />
     <ClInclude Include="zipManager.h" />
   </ItemGroup>
   <ItemGroup>
