@@ -100,6 +100,10 @@ textRenderer txtRndr;
 Coordinate_System CoordSys = Coordinate_System::BREEZE_ENGINE;
 
 SDL_Window* mainSDLwindow = nullptr;
+SDL_GLContext mainSDLcontext = NULL;
+
+SDL_Window* terminalWindow = nullptr;
+SDL_GLContext terminalContext = NULL;
 
 int main(int argc, char *argv[])
 {
@@ -469,7 +473,7 @@ void processFrameInput(float deltaTime)
     {
 		mainCam.keyboardInput(RIGHT, deltaTime);
     }
-	
+
 }
 
 void processInput()
@@ -484,6 +488,7 @@ void processInput()
 			{
 				case SDLK_ESCAPE: std::cout << "Exiting Breeze..." << std::endl; mainWindowRun = false; break;
 				case SDLK_f: toggleWireframeMode(); break;
+				case SDLK_F8: mainCam.cameraFOV = 90; break;
 				default: break;
 			}
 		}
@@ -499,6 +504,11 @@ void processInput()
 				firstMouse = false;
 			}
 			mainCam.mouseInput(xpos, (ypos * -1));
+		}
+		if (e.type == SDL_MOUSEWHEEL) // MOUSE WHEEL
+		{
+			int yOffset = e.wheel.y;
+			mainCam.scrollInput(yOffset);
 		}
 	}
 	
@@ -563,8 +573,8 @@ void setBuildNumber()
 	int timeMonth = 1 + ltm.tm_mon;
 	int timeYear = ltm.tm_year - 100;
 
-	buildNumber.append(std::to_string(timeDay) + "-");
-	buildNumber.append(std::to_string(timeMonth) + "-");
+	buildNumber.append(std::to_string(timeDay));
+	buildNumber.append(std::to_string(timeMonth));
 	buildNumber.append(std::to_string(timeYear));
 }
 
@@ -646,6 +656,18 @@ bool SDL_IntializeAndCreateWindow()
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
+	if (DEBUG_MODE == true)
+	{
+		terminalWindow = SDL_CreateWindow("Breeze Engine Terminal", 32, 64, 640, 800, SDL_WINDOW_OPENGL);
+		if (terminalWindow == NULL)
+		{
+			std::cout << "Ya dun fucked up lmao. SDL2 failed to create window" << std::endl;
+			SDL_Quit();
+			didNotFail = false;
+		}
+		terminalContext = SDL_GL_CreateContext(terminalWindow);
+	}
+
 	mainSDLwindow = SDL_CreateWindow("Breeze Engine",SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL);
 	if (mainSDLwindow == NULL)
 	{
@@ -653,7 +675,7 @@ bool SDL_IntializeAndCreateWindow()
 		SDL_Quit();
 		didNotFail = false;
 	}
-	SDL_GL_CreateContext(mainSDLwindow);
+	mainSDLcontext = SDL_GL_CreateContext(mainSDLwindow);
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 	SDL_GL_SetSwapInterval(IS_V_SYNC_ENABLED);
@@ -663,7 +685,7 @@ bool SDL_IntializeAndCreateWindow()
 		std::cout << "ERROR! Failed to initialize GLAD" << std::endl;
 		didNotFail = false;
 	}
-
+	SDL_GL_MakeCurrent(mainSDLwindow, mainSDLcontext);
 	return didNotFail;
 }
 
