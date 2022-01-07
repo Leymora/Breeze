@@ -51,8 +51,8 @@ void main()
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
 
     //Point Light Stuff
-    float distance = length(light.position - FragPos);
-    float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
+    float distancee = length(light.position - FragPos);
+    float attenuation = 1.0 / (light.constant + light.linear * distancee + light.quadratic * (distancee * distancee));
 
 
     vec3 ambient = light.ambient * vec3(texture(material.texture_diffuse1, TexCoords));

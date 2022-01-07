@@ -92,7 +92,8 @@ float lastMouseY = SCREEN_HEIGHT / 2;
 bool firstMouse = true;
 float mixValue = 0.0f;
 
-glm::vec3 lightPos(-2.82f, 3.27f, -8.12f);
+//glm::vec3 lightPos(2.82f, 3.27f, 8.12f);
+glm::vec3 lightPos(0.0f, 0.0f, 0.0f);
 
 zipManager zipper;
 textRenderer txtRndr; 
@@ -126,7 +127,6 @@ int main(int argc, char *argv[])
 		return -1;
 
 
-	//Shader defaultShader((CURRENT_PATH + "shaders/default_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/default_fragment.glsl").c_str());
 	Shader breathingShader((CURRENT_PATH + "shaders/default_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/breathing_fragment.glsl").c_str());
 	Shader defaultShader((CURRENT_PATH + "shaders/default_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/default_fragment.glsl").c_str());
 	Shader pointLightShader((CURRENT_PATH + "shaders/pointLight_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/pointLight_fragment.glsl").c_str());
@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
 
 	glm::vec3 cubePositions[] =
 	{
-        glm::vec3( 0.0f,  0.0f,  0.0f),
+        glm::vec3( 7.0f,  7.0f,  7.0f),
         glm::vec3( 2.0f,  5.0f, -15.0f),
         glm::vec3(-1.5f, -2.2f, -2.5f),
         glm::vec3(-3.8f, -2.0f, -12.3f),
@@ -266,7 +266,7 @@ int main(int argc, char *argv[])
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	zipper.unZip(unzippedTexture, unzippedTextureSize, APP_DATA_PATH + "engineTextures.bpf", "TestSpec2.png");
+	zipper.unZip(unzippedTexture, unzippedTextureSize, APP_DATA_PATH + "engineTextures.bpf", "TestSpec.png");
 	textureData = stbi_load_from_memory(unzippedTexture, unzippedTextureSize, &width, &height, &nrChannels, 0);
 	if(!textureData)
 	{
@@ -302,8 +302,8 @@ int main(int argc, char *argv[])
 	startFPSTime = SDL_GetTicks();
 
 	defaultShader.use();
-	defaultShader.setInt("material.diffuse", 0);
-	defaultShader.setInt("material.specular", 1);
+	defaultShader.setInt("material.texture_diffuse1", 0);
+	defaultShader.setInt("material.texture_specular1", 1);
 
 	while (mainWindowRun)
 	{
@@ -315,7 +315,7 @@ int main(int argc, char *argv[])
 		//################################################# EVERYTHING THAT NEEDS TO BE TIED TO FRAMERATE ########################################################
 		while (frameTime > 0.0f)
 		{
-			deltaTime = glm::min(frameTime, FRAME_TARGET);
+			deltaTime = glm::min(frameTime, FRAME_TARGET) * TIMESCALE;
 			frameTime -= deltaTime;
 			processFrameInput(deltaTime);
 		}
@@ -435,6 +435,8 @@ int main(int argc, char *argv[])
 	glDeleteBuffers(1, &VBO);
 
 	SDL_Quit();
+	delete unzippedLogo;
+	delete unzippedTexture;
 	return 0;
 
 	//End of Main
@@ -645,6 +647,7 @@ bool checkEngineResources()
 		isResourcesFound = false;
 	}
 
+	delete unzippedShader;
 	return isResourcesFound;
 }
 
