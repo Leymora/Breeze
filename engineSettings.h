@@ -1,4 +1,5 @@
 #pragma once
+#include <SDL/SDL.h>
 
 enum class Coordinate_System
 {

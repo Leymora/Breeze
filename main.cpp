@@ -400,6 +400,7 @@ int main(int argc, char *argv[])
 			txtRndr.renderText(textShader, "Ms/Frame: " + to_string_with_format(msPerFrame, 2), 4, SCREEN_HEIGHT - 30, 1, COL_BREEZE_DARK);
 			txtRndr.renderText(textShader, "FPS: " + to_string_with_format(framesItTook, 2), 4, SCREEN_HEIGHT - 56, 1, COL_BREEZE_DARK);
 			txtRndr.renderText(textShader, "Vsync: " + boolToString(IS_V_SYNC_ENABLED), 4, SCREEN_HEIGHT - 72, 1, COL_BREEZE_DARK);
+			std::cout << breezeRandomIntRange(0, 23) << std::endl;
 
 			if (CoordSys == Coordinate_System::BREEZE_ENGINE)
 			{
