@@ -10,6 +10,7 @@
 #include <sstream>
 #include <map>
 #include <chrono>
+#include <phonon.h>
 
 //OpenGL Mathematics
 #include <glm/glm.hpp>
@@ -27,6 +28,10 @@
 #include "breeze_timer.h"
 #include "breeze_utilities.h"
 #include "ui.h"
+
+
+
+
 
 
 //Prototypes
@@ -56,6 +61,8 @@ void getFPS();
 void render();
 
 double hires_time_in_seconds();
+
+std::vector<float> load_input_audio(const std::string filename);
 
 bool hasCheckedArgs = false;
 bool mainWindowRun = true;
@@ -126,6 +133,47 @@ int main(int argc, char *argv[])
 	if(!SDL_IntializeAndCreateWindow())
 		return -1;
 
+
+	//Audio Engine Startup---------------------------------------------------------------------------------
+	IPLContextSettings SteamAudioContextSettings{};
+	IPLContext SteamAudioContext = nullptr;
+
+	IPLHRTFSettings SteamAudioHrtfSettings{};
+	IPLHRTF SteamAudioHRTF = nullptr;
+	IPLAudioSettings SteamAudioSettings{};
+
+	SteamAudioContextSettings.version = STEAMAUDIO_VERSION;
+	SteamAudioHrtfSettings.type = IPL_HRTFTYPE_DEFAULT;
+	SteamAudioSettings.samplingRate = 44100;
+	SteamAudioSettings.frameSize = 1024;
+	
+	iplContextCreate(&SteamAudioContextSettings, &SteamAudioContext);
+	iplHRTFCreate(SteamAudioContext, &SteamAudioSettings, &SteamAudioHrtfSettings, &SteamAudioHRTF);
+		
+
+	IPLBinauralEffectSettings SteamAudioEffectsSettings{};
+	IPLBinauralEffect SteamAudioEffect = nullptr;
+
+	SteamAudioEffectsSettings.hrtf = SteamAudioHRTF;
+	iplBinauralEffectCreate(SteamAudioContext, &SteamAudioSettings, &SteamAudioEffectsSettings, &SteamAudioEffect);
+
+	std::vector<float> inputAudio = load_input_audio("jeff.wav");
+	std::vector<float> outputAudio;
+
+	float* inAudioData[] = {inputAudio.data()};
+	IPLAudioBuffer SteamAudioBufferIn{};
+	SteamAudioBufferIn.numChannels = 1;
+	SteamAudioBufferIn.numSamples = SteamAudioSettings.frameSize;
+	SteamAudioBufferIn.data = inAudioData;
+
+	IPLAudioBuffer SteamAudioBufferOut{};
+	iplAudioBufferAllocate(SteamAudioContext, 2, SteamAudioSettings.frameSize, &SteamAudioBufferOut);
+	std::vector<float> outputAudioFrame(2 * SteamAudioSettings.frameSize);
+
+	int SteamAudioNumFrames = inputAudio.size() / SteamAudioSettings.frameSize;
+	// Continue here: https://valvesoftware.github.io/steam-audio/doc/capi/getting-started.html#main-loop
+
+	//-----------------------------------------------------------------------------------------------------
 
 	Shader breathingShader((CURRENT_PATH + "shaders/default_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/breathing_fragment.glsl").c_str());
 	Shader defaultShader((CURRENT_PATH + "shaders/default_vertex.glsl").c_str(), (CURRENT_PATH + "shaders/default_fragment.glsl").c_str());
@@ -723,4 +771,19 @@ double hires_time_in_seconds()
     static clock::time_point start = clock::now();
     duration elapsed = clock::now() - start;
     return elapsed.count() / 1000;
+}
+
+std::vector<float> load_input_audio(const std::string filename)
+{
+	std::ifstream file(filename.c_str(), std::ios::binary);
+
+	file.seekg(0, std::ios::end);
+	auto fileSize = file.tellg();
+	auto numSamples = static_cast<int>(fileSize / sizeof(float));
+
+	std::vector<float> inputAudio(numSamples);
+	file.seekg(0, std::ios::beg);
+	file.read(reinterpret_cast<char*>(inputAudio.data()), fileSize);
+
+	return inputAudio;
 }
