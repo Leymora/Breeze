@@ -31,9 +31,6 @@
 
 
 
-
-
-
 //Prototypes
 
 void toggleWireframeMode();
@@ -62,7 +59,6 @@ void render();
 
 double hires_time_in_seconds();
 
-std::vector<float> load_input_audio(const std::string filename);
 
 bool hasCheckedArgs = false;
 bool mainWindowRun = true;
@@ -113,8 +109,11 @@ SDL_GLContext mainSDLcontext = NULL;
 SDL_Window* terminalWindow = nullptr;
 SDL_GLContext terminalContext = NULL;
 
+
+
 int main(int argc, char *argv[])
 {
+
 	//Check for memory leaks
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
@@ -132,46 +131,6 @@ int main(int argc, char *argv[])
 		
 	if(!SDL_IntializeAndCreateWindow())
 		return -1;
-
-
-	//Audio Engine Startup---------------------------------------------------------------------------------
-	IPLContextSettings SteamAudioContextSettings{};
-	IPLContext SteamAudioContext = nullptr;
-
-	IPLHRTFSettings SteamAudioHrtfSettings{};
-	IPLHRTF SteamAudioHRTF = nullptr;
-	IPLAudioSettings SteamAudioSettings{};
-
-	SteamAudioContextSettings.version = STEAMAUDIO_VERSION;
-	SteamAudioHrtfSettings.type = IPL_HRTFTYPE_DEFAULT;
-	SteamAudioSettings.samplingRate = 44100;
-	SteamAudioSettings.frameSize = 1024;
-	
-	iplContextCreate(&SteamAudioContextSettings, &SteamAudioContext);
-	iplHRTFCreate(SteamAudioContext, &SteamAudioSettings, &SteamAudioHrtfSettings, &SteamAudioHRTF);
-		
-
-	IPLBinauralEffectSettings SteamAudioEffectsSettings{};
-	IPLBinauralEffect SteamAudioEffect = nullptr;
-
-	SteamAudioEffectsSettings.hrtf = SteamAudioHRTF;
-	iplBinauralEffectCreate(SteamAudioContext, &SteamAudioSettings, &SteamAudioEffectsSettings, &SteamAudioEffect);
-
-	std::vector<float> inputAudio = load_input_audio("jeff.wav");
-	std::vector<float> outputAudio;
-
-	float* inAudioData[] = {inputAudio.data()};
-	IPLAudioBuffer SteamAudioBufferIn{};
-	SteamAudioBufferIn.numChannels = 1;
-	SteamAudioBufferIn.numSamples = SteamAudioSettings.frameSize;
-	SteamAudioBufferIn.data = inAudioData;
-
-	IPLAudioBuffer SteamAudioBufferOut{};
-	iplAudioBufferAllocate(SteamAudioContext, 2, SteamAudioSettings.frameSize, &SteamAudioBufferOut);
-	std::vector<float> outputAudioFrame(2 * SteamAudioSettings.frameSize);
-
-	int SteamAudioNumFrames = inputAudio.size() / SteamAudioSettings.frameSize;
-	// Continue here: https://valvesoftware.github.io/steam-audio/doc/capi/getting-started.html#main-loop
 
 	//-----------------------------------------------------------------------------------------------------
 
@@ -337,6 +296,8 @@ int main(int argc, char *argv[])
 	Line yLineBreeze(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -0.5f), COL_Y_AXIS);
 	Line zLineBreeze(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.5f, 0.0f), COL_Z_AXIS);
 
+	Line rayLine(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.5f, 0.0f, 0.0f), COL_BLACK);
+
 	SDL_Event* e = nullptr;
 
 	fpsCounterClock.start(); //Start a timer so FPS can be counted
@@ -448,7 +409,7 @@ int main(int argc, char *argv[])
 			txtRndr.renderText(textShader, "Ms/Frame: " + to_string_with_format(msPerFrame, 2), 4, SCREEN_HEIGHT - 30, 1, COL_BREEZE_DARK);
 			txtRndr.renderText(textShader, "FPS: " + to_string_with_format(framesItTook, 2), 4, SCREEN_HEIGHT - 56, 1, COL_BREEZE_DARK);
 			txtRndr.renderText(textShader, "Vsync: " + boolToString(IS_V_SYNC_ENABLED), 4, SCREEN_HEIGHT - 72, 1, COL_BREEZE_DARK);
-			std::cout << breezeRandomIntRange(0, 23) << std::endl;
+			//std::cout << breezeRandomIntRange(0, 23) << std::endl;
 
 			if (CoordSys == Coordinate_System::BREEZE_ENGINE)
 			{
@@ -560,6 +521,14 @@ void processInput()
 		{
 			int yOffset = e.wheel.y;
 			mainCam.scrollInput(yOffset);
+		}
+		if (e.type == SDL_MOUSEBUTTONDOWN)	// MOUSE BUTTON
+		{
+			switch (e.button.button)
+			{
+			case 1 : std::cout << "Left Mouse Button Clicked" << std::endl; break;
+			default: break;
+			}
 		}
 	}
 	
@@ -771,19 +740,4 @@ double hires_time_in_seconds()
     static clock::time_point start = clock::now();
     duration elapsed = clock::now() - start;
     return elapsed.count() / 1000;
-}
-
-std::vector<float> load_input_audio(const std::string filename)
-{
-	std::ifstream file(filename.c_str(), std::ios::binary);
-
-	file.seekg(0, std::ios::end);
-	auto fileSize = file.tellg();
-	auto numSamples = static_cast<int>(fileSize / sizeof(float));
-
-	std::vector<float> inputAudio(numSamples);
-	file.seekg(0, std::ios::beg);
-	file.read(reinterpret_cast<char*>(inputAudio.data()), fileSize);
-
-	return inputAudio;
 }
