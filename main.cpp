@@ -145,7 +145,6 @@ int main(int argc, char *argv[])
 	int logoChannels = 0;
 	zipper.unZip(unzippedLogo, unzippedLogoSize, ENGINE_DEFAULTS_PATH, "BreezeLogo.png");
 
-
 	float cube[] = {
     // positions          // normals           // texture coords
     -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
