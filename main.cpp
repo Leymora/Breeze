@@ -84,7 +84,7 @@ double startFPSTime		= 0.0f;
 double currentFPSTime	= 0.0f;
 double frameCounter 	= 0.0f;
 double framesItTook		= 0.0f;
-double msPerFrame		= 0.0f;
+double msPerFrame		= 0.0f; 
 
 
 // Camera setup
