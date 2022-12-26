@@ -1,3 +1,7 @@
+//Breeze Engine - Vilhelm Hansson / Vespera - Start Date: 28 Aug 2020
+
+//Audio Engine: FMOD Studio by Firelight Technologies Pty Ltd.
+
 #include <glad/glad.h>
 #include <SDL/SDL.h>
 
@@ -28,7 +32,6 @@
 #include "breeze_timer.h"
 #include "breeze_utilities.h"
 #include "ui.h"
-
 
 
 //Prototypes
@@ -102,6 +105,7 @@ zipManager zipper;
 textRenderer txtRndr; 
 
 Coordinate_System CoordSys = Coordinate_System::BREEZE_ENGINE;
+Game_State gameState = Game_State::PLAYING;
 
 SDL_Window* mainSDLwindow = nullptr;
 SDL_GLContext mainSDLcontext = NULL;
@@ -393,6 +397,7 @@ int main(int argc, char *argv[])
 		pointLightShader.setMat4("view", view);
 
 		model = glm::mat4(1.0f);
+
 		model = glm::translate(model, lightPos);
 		model = glm::scale(model, glm::vec3(1.0f));
 		pointLightShader.setMat4("model", model);
@@ -708,10 +713,6 @@ bool SDL_IntializeAndCreateWindow()
 	SDL_GL_MakeCurrent(mainSDLwindow, mainSDLcontext);
 	return didNotFail;
 }
-
-
-
-
 
 
 void getFPS()
