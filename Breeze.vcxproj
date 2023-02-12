@@ -127,7 +127,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>glfw3.lib;opengl32.lib;zip.lib;zlib.lib;freetype.lib;SDL2.lib;SDL2main.lib;SDL2test.lib;assimp-vc142-mt.lib;phonon.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glfw3.lib;opengl32.lib;zip.lib;zlib.lib;freetype.lib;SDL2.lib;SDL2main.lib;SDL2test.lib;assimp-vc142-mt.lib;phonon.lib;LogitechLEDLib.lib;jsoncpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <IgnoreAllDefaultLibraries>
       </IgnoreAllDefaultLibraries>
@@ -156,6 +156,9 @@
     <ClCompile Include="breeze_timer.cpp" />
     <ClCompile Include="breeze_utilities.cpp" />
     <ClCompile Include="camera.cpp" />
+    <ClCompile Include="echoSource.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="glad.c" />
     <ClCompile Include="line.cpp" />
     <ClCompile Include="main.cpp" />
@@ -172,10 +175,14 @@
     <ClInclude Include="breeze_utilities.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="consts.h" />
+    <ClInclude Include="echoSource.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="engineSettings.h" />
     <ClInclude Include="line.h" />
     <ClInclude Include="mesh.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="resource1.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="textRenderer.h" />
@@ -187,7 +194,8 @@
     <ResourceCompile Include="Breeze.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="icon1.ico" />
+    <Image Include="BreezeLogo2.ico" />
+    <Image Include="BreezeLogo3.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

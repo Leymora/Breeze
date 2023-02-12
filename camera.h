@@ -1,3 +1,4 @@
+#pragma once
 #include <glad/glad.h> // Include GLAD to get all the OpenGL headers that are needed
 
 //OpenGL Mathematics

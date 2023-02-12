@@ -1,6 +1,8 @@
-//Breeze Engine - Vilhelm Hansson / Vespera - Start Date: 28 Aug 2020
+//Breeze Engine - Vilhelm Hansson / Vespera Chromatic - Start Date: 28 Aug 2020
 
 //Audio Engine: FMOD Studio by Firelight Technologies Pty Ltd.
+
+#pragma once
 
 #include <glad/glad.h>
 #include <SDL/SDL.h>
@@ -21,6 +23,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+
 //Breeze Engine Includes
 #include "engineSettings.h"
 #include "zipManager.h"
@@ -32,7 +35,12 @@
 #include "breeze_timer.h"
 #include "breeze_utilities.h"
 #include "ui.h"
+#include "echoEngine.h"
+#undef min //window.h defines min, which is hella not cool and causes issues with GLM. So we undefine it here.
 
+
+//Logitech G Hardware RGB Support
+#include "LogitechLEDLib.h"
 
 //Prototypes
 
@@ -48,7 +56,7 @@ void mouse_callback(double xpos, double ypos);
 
 void scroll_callback(double xoffset, double yoffset);
 
-void checkArgs(int range, char* args[]); //Probably really unoptimized but shut up pls ( It only happens once at startup so it's fine >:c )
+void checkArgs(int range, char* args[]);
 
 void setBuildNumber();
 
@@ -61,6 +69,8 @@ void getFPS();
 void render();
 
 double hires_time_in_seconds();
+
+void initLogitechGLED();
 
 
 bool hasCheckedArgs = false;
@@ -135,6 +145,9 @@ int main(int argc, char *argv[])
 		
 	if(!SDL_IntializeAndCreateWindow())
 		return -1;
+
+	//Logitech G RGB Startup
+	initLogitechGLED();
 
 	//-----------------------------------------------------------------------------------------------------
 
@@ -343,7 +356,7 @@ int main(int argc, char *argv[])
 
 		//Rendering
 		glEnable(GL_DEPTH_TEST);
-		glClearColor(COL_BREEZE_SKY.x, COL_BREEZE_SKY.y, COL_BREEZE_SKY.z, 1.0f);
+		glClearColor(COL_BREEZE_SKY_GREEN.x, COL_BREEZE_SKY_GREEN.y, COL_BREEZE_SKY_GREEN.z, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glActiveTexture(GL_TEXTURE0); // Activate the texture unit first before binding the texture
@@ -433,10 +446,20 @@ int main(int argc, char *argv[])
 				txtRndr.renderText(textShader, "Camera Pos Y: " + to_string_with_format(mainCam.position.y, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 2, 1, COL_Y_AXIS);
 				txtRndr.renderText(textShader, "Camera Pos Z: " + to_string_with_format(mainCam.position.z, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 3, 1, COL_Z_AXIS);
 			}
+			SDL_GL_MakeCurrent(terminalWindow, terminalContext);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+			//Rendering
+			glEnable(GL_DEPTH_TEST);
+			glClearColor(COL_BREEZE_SKY.x, COL_BREEZE_SKY.y, COL_BREEZE_SKY.z, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			txtRndr.renderText(textShader, "Camera Pos Z: " + to_string_with_format(mainCam.position.z, 2), SCREEN_WIDTH - 248, SCREEN_HEIGHT - 14 * 3, 1, COL_Z_AXIS);
+			SDL_GL_SwapWindow(terminalWindow);
+			SDL_GL_MakeCurrent(mainSDLwindow, mainSDLcontext);
 		}
 
 		SDL_GL_SwapWindow(mainSDLwindow);
+
 
 	}
 	//###############################################################################################################################################################
@@ -451,6 +474,7 @@ int main(int argc, char *argv[])
 	SDL_Quit();
 	delete unzippedLogo;
 	delete unzippedTexture;
+	LogiLedShutdown();
 	return 0;
 
 	//End of Main
@@ -458,15 +482,21 @@ int main(int argc, char *argv[])
 
 void toggleWireframeMode()
 {
+
 		WIREFRAME_MODE = !WIREFRAME_MODE;
 		if (WIREFRAME_MODE == true)
 		{
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			LogiLedSetLightingForKeyWithKeyName(LogiLed::F, 27, 85, 65);
+			LogiLedSaveLightingForKey(LogiLed::F);
+			LogiLedPulseSingleKey(LogiLed::F, 17, 64, 7, 77, 33, 18, 2000, true);
 		}
 		else
 		{
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);			
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			LogiLedStopEffectsOnKey(LogiLed::F);
 		}
+
 }
 
 void processFrameInput(float deltaTime)
@@ -504,6 +534,7 @@ void processInput()
 			{
 				case SDLK_ESCAPE: std::cout << "Exiting Breeze..." << std::endl; mainWindowRun = false; break;
 				case SDLK_f: toggleWireframeMode(); break;
+				case SDLK_F1: initLogitechGLED(); break;
 				case SDLK_F8: mainCam.cameraFOV = 90; break;
 				default: break;
 			}
@@ -530,7 +561,7 @@ void processInput()
 		{
 			switch (e.button.button)
 			{
-			case 1 : std::cout << "Left Mouse Button Clicked" << std::endl; break;
+			case 1 : std::cout << "Left Mouse Button Clicked" << std::endl; LogiLedShutdown(); break;
 			default: break;
 			}
 		}
@@ -681,6 +712,10 @@ bool SDL_IntializeAndCreateWindow()
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
+	// Anti-aliasing stuff------
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+
 	if (DEBUG_MODE == true)
 	{
 		terminalWindow = SDL_CreateWindow("Breeze Engine Terminal", 32, 64, 640, 800, SDL_WINDOW_OPENGL);
@@ -704,6 +739,7 @@ bool SDL_IntializeAndCreateWindow()
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 	SDL_GL_SetSwapInterval(IS_V_SYNC_ENABLED);
+	
 
 	if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
 	{
@@ -740,4 +776,26 @@ double hires_time_in_seconds()
     static clock::time_point start = clock::now();
     duration elapsed = clock::now() - start;
     return elapsed.count() / 1000;
+}
+
+void initLogitechGLED()
+{
+	int backgroundRed = 45;
+	int backgroundGreen = 95;
+	int backgroundBlue = 55;
+	bool LedInitialized = LogiLedInitWithName("Breeze Engine");
+
+	if (!LedInitialized)
+	{
+		std::cout << "LogiLedInit() failed." << std::endl;
+	}
+
+	std::cout << "Logitech G LED SDK Initialized" << std::endl;
+	LogiLedSetTargetDevice(LOGI_DEVICETYPE_ALL);
+	LogiLedSetLighting(backgroundRed, backgroundGreen, backgroundBlue);
+	LogiLedSetLightingForKeyWithKeyName(LogiLed::KeyName::W, 85, 27, 38);
+	LogiLedSetLightingForKeyWithKeyName(LogiLed::KeyName::A, 85, 27, 38);
+	LogiLedSetLightingForKeyWithKeyName(LogiLed::KeyName::S, 85, 27, 38);
+	LogiLedSetLightingForKeyWithKeyName(LogiLed::KeyName::D, 85, 27, 38);
+
 }

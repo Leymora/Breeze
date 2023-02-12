@@ -2,7 +2,7 @@
 // Microsoft Visual C++ generated include file.
 // Used by Breeze.rc
 //
-#define MAINICON                        1
+#define IDI_ICON2                       102
 #define IDI_ICON1                       102
 
 // Next default values for new objects
