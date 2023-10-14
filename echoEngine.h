@@ -1,4 +1,4 @@
-//Echo Audio Engine - Vilhelm Hansson / Vespera - 26 Dec 2022
+//Echo Audio Engine - Vilhelm Hansson / Vespera Chromatic - 26 Dec 2022
 
 // Windows Audio Session API (WASAPI) - Enables client applications to manage the flow of audio data between the application and an audio endpoint device
 // https://learn.microsoft.com/en-us/windows/win32/coreaudio/wasapi

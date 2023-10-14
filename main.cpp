@@ -1,6 +1,8 @@
 //Breeze Engine - Vilhelm Hansson / Vespera Chromatic - Start Date: 28 Aug 2020
 
-//Audio Engine: FMOD Studio by Firelight Technologies Pty Ltd.
+//Audio Engine: Echo
+
+//Physics Engine: Crescent
 
 #pragma once
 
